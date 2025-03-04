@@ -1,4 +1,7 @@
 const express = require("express");
+const fs = require("fs");
+const multer = require("multer");
+const path = require("path");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 
@@ -64,5 +67,103 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 });
+router.put("/update", async (req, res) => {
+  try {
+    const { id, fullname, phone, birthday, avatar } = req.body;
+
+    if (!id) return res.status(400).json({ message: "Thiếu ID người dùng" });
+
+    const user = await User.findById(id);
+    if (!user)
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+
+    user.fullname = fullname || user.fullname;
+    user.phone = phone || user.phone;
+    user.birthday = birthday || user.birthday;
+    user.avatar = avatar || user.avatar;
+
+    await user.save();
+    res.json({ message: "Cập nhật thành công", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi server khi cập nhật" });
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // Lưu file vào thư mục "uploads"
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Tạo tên file duy nhất
+  },
+});
+
+const upload = multer({ storage });
+
+// API nhận file upload
+router.post("/upload", upload.single("avatar"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  try {
+    const userId = req.body.userId; // Nhận userId từ frontend
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Xóa ảnh cũ nếu tồn tại
+    if (
+      user.avatar &&
+      user.avatar.startsWith("http://localhost:5000/uploads/")
+    ) {
+      const oldImagePath = path.join(
+        __dirname,
+        "../",
+        user.avatar.replace("http://localhost:5000/", "")
+      );
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
+    }
+
+    // Cập nhật avatar mới vào database
+    const newAvatarUrl = `/uploads/${req.file.filename}`;
+    user.avatar = newAvatarUrl;
+    await user.save();
+
+    res.json({ imageUrl: newAvatarUrl });
+  } catch (error) {
+    console.error("Lỗi upload ảnh:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+router.get("/user", async (req, res) => {
+  try {
+    // Lấy token từ headers
+    const token = req.header("Authorization");
+    if (!token) {
+      return res
+        .status(401)
+        .json({ message: "Không có token, từ chối truy cập" });
+    }
+
+    // Giải mã token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-password");
+
+    if (!user) return res.status(404).json({ message: "User không tồn tại" });
+
+    res.json(user);
+  } catch (error) {
+    console.error("Lỗi lấy thông tin user:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+router.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 module.exports = router;

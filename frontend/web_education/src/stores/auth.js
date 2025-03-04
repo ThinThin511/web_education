@@ -44,5 +44,21 @@ export const useAuthStore = defineStore("auth", {
       localStorage.removeItem("user");
       localStorage.removeItem("token");
     },
+    async fetchUser() {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          {
+            headers: {
+              Authorization: localStorage.getItem("token"),
+            },
+          }
+        );
+        this.user = response.data;
+        localStorage.setItem("user", JSON.stringify(this.user));
+      } catch (error) {
+        console.error("Lỗi lấy thông tin người dùng:", error);
+      }
+    },
   },
 });

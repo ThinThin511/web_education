@@ -8,7 +8,7 @@
           <div class="profile-picture">
             <img :src="userAvatar " alt="Avatar" class="avatar" />
             <p>JPG hoặc PNG không lớn hơn 5MB</p>
-            <input type="file" @change="uploadAvatar" />
+            <input class="form-control " type="file" @change="uploadAvatar" />
           </div>
 
           <div class="account-details">
@@ -139,11 +139,19 @@ const saveChanges = async () => {
 }
 
 
+/* Phần chỉnh sửa hồ sơ */
 .edit-profile {
   display: flex;
-  gap: 20px;
+  gap: 30px;
+  background: rgb(255, 255, 255);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.9);
+  max-width: 800px;
+  width: 100%;
 }
 
+/* Ảnh đại diện */
 .profile-picture {
   width: 250px;
   text-align: center;
@@ -152,12 +160,41 @@ const saveChanges = async () => {
 .profile-picture img {
   width: 100%;
   border-radius: 50%;
+  border: 5px solid #e0e0e0;
+  transition: transform 0.3s ease, border-color 0.3s ease;
 }
 
+.profile-picture img:hover {
+  transform: scale(1.05);
+  border-color: #007bff;
+}
+
+.profile-picture p {
+  font-size: 14px;
+  color: #6c757d;
+  margin-top: 10px;
+}
+
+/* Ô chọn file */
+.profile-picture input {
+  margin-top: 10px;
+  padding: 5px;
+  font-size: 14px;
+}
+
+/* Thông tin tài khoản */
 .account-details {
   flex: 1;
 }
 
+.account-details h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: #333;
+  font-weight: 600;
+}
+
+/* Form chỉnh sửa */
 form {
   display: flex;
   flex-direction: column;
@@ -165,19 +202,40 @@ form {
 
 form label {
   margin-top: 10px;
+  font-weight: 500;
+  color: #555;
 }
 
 form input {
-  padding: 8px;
-  margin-bottom: 10px;
+  padding: 10px;
+  margin-top: 5px;
   border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: border 0.3s ease;
 }
 
+form input:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Nút lưu thay đổi */
 .btn-primary {
   background-color: #007bff;
   color: white;
-  padding: 10px;
+  padding: 12px;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 15px;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
 }
 </style>

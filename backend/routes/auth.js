@@ -164,6 +164,32 @@ router.get("/user", async (req, res) => {
   }
 });
 
+router.put("/change-password", async (req, res) => {
+  const { userId, oldPassword, newPassword } = req.body;
+
+  if (!userId || !oldPassword || !newPassword) {
+    return res.status(400).json({ message: "Thiếu thông tin" });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user)
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Mật khẩu hiện tại không đúng" });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.json({ message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    console.error("Lỗi đổi mật khẩu:", error);
+    res.status(500).json({ message: "Lỗi hệ thống" });
+  }
+});
+
 router.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 module.exports = router;

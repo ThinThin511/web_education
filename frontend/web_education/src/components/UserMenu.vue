@@ -5,7 +5,7 @@
 
     <div v-if="isDropdownOpen" class="dropdown-menu">
       <router-link to="/edituser">Chỉnh sửa thông tin </router-link>
-      <router-link to="/editpassword">Đổi mật khẩu</router-link>
+      <router-link to="/changepassword">Đổi mật khẩu</router-link>
       
       <button class="logout-btn" @click="handleLogout">
         <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất

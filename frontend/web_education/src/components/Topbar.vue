@@ -1,7 +1,7 @@
 <template>
   <header class="topbar">
     <div class="left">
-      <h2>Lớp học</h2>
+      <h2>{{ pageTitle }}</h2>
     </div>
     <div class="right">
       <UserMenu />
@@ -10,7 +10,12 @@
 </template>
 
 <script setup>
+import { computed } from "vue";
+import { useRoute } from "vue-router";
 import UserMenu from "@/components/UserMenu.vue";
+
+const route = useRoute();
+const pageTitle = computed(() => route.meta.title);
 </script>
 
 <style scoped>

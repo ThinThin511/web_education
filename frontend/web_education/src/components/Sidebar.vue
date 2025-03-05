@@ -5,26 +5,51 @@
       <span>Lớp học</span>
     </div>
     <nav class="menu">
-      <router-link to="/" class="menu-item"><i class="fas fa-home"></i> Trang chủ</router-link>
-      <router-link to="/schedule" class="menu-item"><i class="fas fa-calendar"></i> Lịch</router-link>
-      <router-link to="/documents" class="menu-item"><i class="fas fa-folder"></i> Tài liệu</router-link>
-      <router-link to="/settings" class="menu-item"><i class="fas fa-cog"></i> Cài đặt</router-link>
+      <router-link to="/" class="menu-item">
+        <i class="fas fa-home"></i> <span>Trang chủ</span>
+      </router-link>
+      <router-link to="/calendar" class="menu-item">
+        <i class="fas fa-calendar"></i> <span>Lịch</span>
+      </router-link>
+      <router-link to="/documents" class="menu-item">
+        <i class="fas fa-folder"></i> <span>Tài liệu</span>
+      </router-link>
+      <router-link to="/settings" class="menu-item">
+        <i class="fas fa-cog"></i> <span>Cài đặt</span>
+      </router-link>
     </nav>
   </aside>
 </template>
 
 <style scoped>
 .sidebar {
-  width: 250px;
-  background: #f8f9fa;
+  width: 260px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #ddd;
   padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .logo {
   display: flex;
   align-items: center;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
+  color: #333;
+  gap: 10px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #eee;
+}
+
+.logo img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #bbb;
 }
 
 .menu {
@@ -34,17 +59,22 @@
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 10px;
-  width: 100%;
-  border: none;
-  background: none;
-  text-align: left;
+  gap: 10px;
+  padding: 12px;
+  color: #555;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: 0.3s;
 }
-.logo img {
-  width: 60px;
-  margin: 10px;
-  border-radius: 40px;
-  border: 1px solid rgb(117, 117, 117);
-  
+
+.menu-item:hover {
+  background: #007bff;
+  color: white;
+}
+
+.menu-item i {
+  font-size: 18px;
 }
 </style>

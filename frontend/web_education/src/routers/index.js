@@ -3,12 +3,26 @@ import LoginView from "@/views/LoginView.vue";
 import ProfileView from "@/views/ProfileView.vue";
 import RegisterView from "@/views/RegisterView.vue";
 import HomePage from "@/views/HomePage.vue";
+import ChangePassword from "@/views/ChangePassword.vue";
 
 const routes = [
-  { path: "/", component: HomePage, meta: { requiresAuth: true } },
+  {
+    path: "/",
+    component: HomePage,
+    meta: { requiresAuth: true, title: "Lớp học" },
+  },
   { path: "/register", component: RegisterView },
   { path: "/login", component: LoginView },
-  { path: "/edituser", component: ProfileView },
+  {
+    path: "/edituser",
+    component: ProfileView,
+    meta: { title: "Cập nhật thông tin" },
+  },
+  {
+    path: "/changepassword",
+    component: ChangePassword,
+    meta: { title: "Thay đổi mật khẩu" },
+  },
 ];
 
 const router = createRouter({

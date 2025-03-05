@@ -25,7 +25,10 @@
             <input type="file" @change="uploadImage" class="form-control" />
           </div>
 
-          <button type="submit" class="btn btn-primary">Tạo lớp</button>
+          <button type="submit" class="btn btn-primary" :disabled="loading">
+            <span v-if="loading">Đang tạo...</span>
+            <span v-else>Tạo lớp</span>
+          </button>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">Hủy</button>
         </form>
       </div>
@@ -35,18 +38,18 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import axios from "axios";
 
 const className = ref("");
 const description = ref("");
 const classCode = ref("");
 const image = ref(null);
+const loading = ref(false);
 
-// Hàm tạo mã lớp học ngẫu nhiên
 const generateClassCode = () => {
   classCode.value = Math.random().toString(36).substring(2, 8).toUpperCase();
 };
 
-// Gọi tự động khi mở popup
 onMounted(() => {
   generateClassCode();
 });
@@ -58,21 +61,41 @@ const uploadImage = (event) => {
   }
 };
 
-const createClass = () => {
-  const newClass = {
-    id: classCode.value, // Dùng mã lớp học làm ID
-    name: className.value,
-    description: description.value,
-    image: image.value,
-    teacher: "Người tạo lớp",
-  };
-  console.log("Lớp học mới:", newClass);
-  alert("Lớp học đã được tạo!");
-  className.value = "";
-  description.value = "";
-  generateClassCode(); // Reset mã mới sau khi tạo lớp
-  image.value = null;
+const createClass = async () => {
+  try {
+    loading.value = true;
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !user.id) {
+      alert("Lỗi: Không tìm thấy thông tin người dùng!");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", className.value);
+    formData.append("description", description.value);
+    formData.append("classCode", classCode.value);
+    formData.append("creatorId", user.id); // Đảm bảo gửi đúng ID
+    if (image.value) formData.append("image", image.value);
+
+    console.log([...formData]); // Kiểm tra dữ liệu trước khi gửi
+
+    const response = await axios.post("http://localhost:5000/api/classes/create", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    alert(response.data.message);
+    className.value = "";
+    description.value = "";
+    generateClassCode();
+    image.value = null;
+  } catch (error) {
+    alert("Lỗi khi tạo lớp học");
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
 };
+
 </script>
 
 <style scoped>

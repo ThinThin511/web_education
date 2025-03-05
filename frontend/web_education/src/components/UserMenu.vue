@@ -99,7 +99,7 @@ const showJoinClassPopup = ref(false);
   background: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
-  width: 200px;
+  width: 180px;
   display: flex;
   flex-direction: column;
   z-index: 1000;

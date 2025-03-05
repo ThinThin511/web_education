@@ -32,7 +32,9 @@ router.post("/create", upload.single("image"), async (req, res) => {
     const creatorObjectId = new mongoose.Types.ObjectId(creatorId);
 
     // Đường dẫn ảnh (nếu có)
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
+    const imagePath = req.file
+      ? `http://localhost:5000/uploads/${req.file.filename}`
+      : null;
 
     const newClass = new Class({
       name,
@@ -88,6 +90,28 @@ router.post("/join", async (req, res) => {
     res.json({ message: "Tham gia lớp học thành công!", class: existingClass });
   } catch (error) {
     console.error("Lỗi khi tham gia lớp:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+router.get("/", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    console.log("📌 API classes được gọi với userId:", userId);
+
+    if (!userId) return res.status(400).json({ message: "Thiếu userId" });
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+    const classes = await Class.find({
+      $or: [{ teachers: userObjectId }, { students: userObjectId }],
+    })
+      .populate("teachers", "fullname avatar") // Lấy thông tin giáo viên từ User
+      .populate("students", "fullname");
+
+    console.log("📌 Danh sách lớp trả về:", classes);
+    res.json({ classes });
+  } catch (error) {
+    console.error("❌ Lỗi lấy danh sách lớp:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

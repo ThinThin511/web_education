@@ -8,13 +8,13 @@
       <router-link to="/" class="menu-item">
         <i class="fas fa-home"></i> <span>Trang chủ</span>
       </router-link>
-      <router-link to="/calendar" class="menu-item">
+      <router-link to="/" class="menu-item">
         <i class="fas fa-calendar"></i> <span>Lịch</span>
       </router-link>
-      <router-link to="/documents" class="menu-item">
+      <router-link to="/" class="menu-item">
         <i class="fas fa-folder"></i> <span>Tài liệu</span>
       </router-link>
-      <router-link to="/settings" class="menu-item">
+      <router-link to="/" class="menu-item">
         <i class="fas fa-cog"></i> <span>Cài đặt</span>
       </router-link>
     </nav>

@@ -28,7 +28,7 @@ import axios from "axios";
 const classCode = ref("");
 const errorMessage = ref("");
 const loading = ref(false);
-
+const emit = defineEmits(["close", "classJoined"]);
 const joinClass = async () => {
   if (!classCode.value) {
     errorMessage.value = "Vui lòng nhập mã lớp học!";
@@ -48,15 +48,14 @@ const joinClass = async () => {
       userId: user.id,
     });
 
-    if (response.data.success) {
+    
       alert("Tham gia lớp thành công!");
       classCode.value = "";
       errorMessage.value = "";
       loading.value = false;
+      emit("classJoined");
       emit("close");
-    } else {
-      errorMessage.value = response.data.message;
-    }
+    
   } catch (error) {
     errorMessage.value = "Lỗi khi tham gia lớp học!";
     console.error(error);

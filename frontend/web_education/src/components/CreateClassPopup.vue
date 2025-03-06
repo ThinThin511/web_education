@@ -39,7 +39,10 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
+const emit = defineEmits(["close", "classCreated"]);
 const className = ref("");
 const description = ref("");
 const classCode = ref("");
@@ -88,6 +91,9 @@ const createClass = async () => {
     description.value = "";
     generateClassCode();
     image.value = null;
+    console.log("Đang phát sự kiện classCreated...");
+    emit("classCreated"); // Thông báo cho component cha
+    emit("close"); // Đóng popup
   } catch (error) {
     alert("Lỗi khi tạo lớp học");
     console.error(error);

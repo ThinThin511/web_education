@@ -24,8 +24,8 @@
       </div>
     </div>
   </div>
-  <CreateClassPopup v-if="showPopup" @close="showPopup = false" />
-  <JoinClassPopup v-if="showJoinClassPopup" @close="showJoinClassPopup = false" />
+  <CreateClassPopup v-if="showPopup" @close="showPopup = false" @classCreated="$emit('classCreated')" />
+  <JoinClassPopup v-if="showJoinClassPopup" @close="showJoinClassPopup = false" @classJoined="$emit('classJoined')"/>
 </template>
 
 
@@ -99,7 +99,7 @@ const showJoinClassPopup = ref(false);
   background: white;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
-  width: 180px;
+  width: 160px;
   display: flex;
   flex-direction: column;
   z-index: 1000;

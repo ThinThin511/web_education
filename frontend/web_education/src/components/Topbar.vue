@@ -4,9 +4,10 @@
       <h2>{{ pageTitle }}</h2>
     </div>
     <div class="right">
-      <UserMenu />
+      <UserMenu @classCreated="$emit('classCreated')" @classJoined="$emit('classJoined')"/>
     </div>
   </header>
+  
 </template>
 
 <script setup>
@@ -16,6 +17,8 @@ import UserMenu from "@/components/UserMenu.vue";
 
 const route = useRoute();
 const pageTitle = computed(() => route.meta.title);
+
+
 </script>
 
 <style scoped>

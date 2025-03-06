@@ -2,7 +2,7 @@
   <div class="layout">
     <Sidebar />
     <main class="main-content">
-      <Topbar />
+      <Topbar @classCreated="fetchUserClasses" @classJoined="fetchUserClasses"/>
       <section class="content">
         <!-- Kiểm tra nếu có lớp học -->
         <div v-if="userClasses.length > 0" class="class-list">
@@ -33,8 +33,8 @@
       </section>
     </main>
 
-    <CreateClassPopup v-if="showPopup" @close="showPopup = false" />
-    <JoinClassPopup v-if="showJoinClassPopup" @close="showJoinClassPopup = false" />
+    <CreateClassPopup v-if="showPopup" @close="showPopup = false" @classCreated="handleClassCreated" />
+    <JoinClassPopup v-if="showJoinClassPopup" @close="showJoinClassPopup = false "@classJoined="handleClassJoined" />
   </div>
 </template>
 
@@ -67,9 +67,21 @@ const fetchUserClasses = async () => {
   }
 };
 
+
+
 onMounted(() => {
   fetchUserClasses();
 });
+const handleClassCreated = () => {
+  console.log("✅ Nhận được sự kiện classCreated!");
+  showPopup.value = false;
+  fetchUserClasses(); // Load lại danh sách lớp
+};
+const handleClassJoined = () => {
+  console.log("✅ Nhận được sự kiện classJoined!");
+  showJoinClassPopup = false
+  fetchUserClasses(); // Load lại danh sách lớp
+};
 </script>
 
 <style scoped>

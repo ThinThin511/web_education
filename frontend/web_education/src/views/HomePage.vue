@@ -9,7 +9,7 @@
           <div v-for="classItem in userClasses" :key="classItem._id" class="class-card">
   <div class="class-header" :style="{ backgroundImage: `url(${classItem.image || defaultImage})` }">
     <div class="overlay"></div>
-    <h3>{{ classItem.name }}</h3>
+    <h3><router-link :to="`/class/${classItem._id}/people`" class="custom-link">{{ classItem.name }}</router-link></h3>
     <p v-if="classItem.teachers.length > 0">
       Giáo viên: {{ classItem.teachers.map(teacher => teacher.fullname).join(", ") }}
     </p>
@@ -182,5 +182,14 @@ const handleClassJoined = () => {
 .class-header img {
   position: relative;
   z-index: 2; /* Để nội dung hiển thị trên overlay */
+}
+.custom-link {
+  text-decoration: none; /* Xóa gạch chân */
+  color: inherit; /* Kế thừa màu chữ từ thẻ cha */
+  font-weight: bold; /* Đậm chữ */
+}
+
+.custom-link:hover {
+  color: greenyellow; /* Đổi màu khi hover */
 }
 </style>

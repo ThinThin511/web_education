@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
+const jwt = require("jsonwebtoken");
 const Class = require("../models/Class"); // Model lớp học
 const User = require("../models/User");
 
@@ -112,6 +113,75 @@ router.get("/", async (req, res) => {
     res.json({ classes });
   } catch (error) {
     console.error("❌ Lỗi lấy danh sách lớp:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+router.get("/:classId/people", async (req, res) => {
+  try {
+    const classId = req.params.classId;
+
+    // Tìm lớp học và populate thông tin giáo viên, học sinh
+    const classroom = await Class.findById(classId)
+      .populate("teachers", "fullname avatar _id")
+      .populate("students", "fullname avatar _id");
+
+    if (!classroom) {
+      return res.status(404).json({ message: "Lớp học không tồn tại" });
+    }
+
+    res.json({
+      teachers: classroom.teachers,
+      students: classroom.students,
+      classroom,
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách thành viên:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+router.delete("/:classId/students/:studentId", async (req, res) => {
+  console.log("Headers nhận được:", req.headers); // Kiểm tra headers
+
+  try {
+    const { classId, studentId } = req.params;
+    const token = req.header("Authorization")?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Bạn chưa đăng nhập" });
+    }
+
+    // Giải mã token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("Token giải mã:", decoded); // Kiểm tra nội dung token
+
+    const user = await User.findById(decoded.id).select("-password");
+    if (!user) {
+      return res.status(401).json({ message: "Người dùng không tồn tại" });
+    }
+
+    const classroom = await Class.findById(classId);
+    if (!classroom) {
+      return res.status(404).json({ message: "Lớp học không tồn tại" });
+    }
+
+    if (!classroom.teachers.includes(user._id)) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền xóa học sinh" });
+    }
+
+    const studentIndex = classroom.students.indexOf(studentId);
+    if (studentIndex === -1) {
+      return res.status(404).json({ message: "Học sinh không có trong lớp" });
+    }
+
+    classroom.students.splice(studentIndex, 1);
+    await classroom.save();
+
+    res.json({ message: "Xóa học sinh thành công" });
+  } catch (error) {
+    console.error("Lỗi khi xóa học sinh:", error);
     res.status(500).json({ message: "Lỗi server" });
   }
 });

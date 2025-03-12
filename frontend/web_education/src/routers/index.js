@@ -4,6 +4,7 @@ import ProfileView from "@/views/ProfileView.vue";
 import RegisterView from "@/views/RegisterView.vue";
 import HomePage from "@/views/HomePage.vue";
 import ChangePassword from "@/views/ChangePassword.vue";
+import ClassPeople from "@/views/ClassPeople.vue";
 
 const routes = [
   {
@@ -22,6 +23,11 @@ const routes = [
     path: "/changepassword",
     component: ChangePassword,
     meta: { title: "Thay đổi mật khẩu" },
+  },
+  {
+    path: "/class/:id/people",
+    component: ClassPeople,
+    meta: { title: "Mọi người" },
   },
 ];
 

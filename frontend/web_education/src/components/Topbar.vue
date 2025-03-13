@@ -4,20 +4,42 @@
       <h2>{{ pageTitle }}</h2>
     </div>
     <div class="right">
-      <UserMenu @classCreated="$emit('classCreated')" @classJoined="$emit('classJoined')"/>
+      <UserMenu @classCreated="$emit('classCreated')" @classJoined="$emit('classJoined')" />
     </div>
   </header>
-  
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute } from "vue-router";
+import axios from "axios";
 import UserMenu from "@/components/UserMenu.vue";
 
 const route = useRoute();
-const pageTitle = computed(() => route.meta.title);
+const className = ref(""); // Lưu tên lớp học
 
+// Lấy tiêu đề dựa trên route
+const pageTitle = computed(() => {
+  if (route.path.startsWith("/class/")) {
+    return className.value || "Đang tải...";
+  }
+  return route.meta.title;
+});
+
+// Hàm lấy tên lớp học từ API
+const fetchClassName = async () => {
+  if (route.params.id) {
+    try {
+      const response = await axios.get(`http://localhost:5000/api/classes/${route.params.id}/people`);
+      className.value = response.data.classroom.name; // Giả sử API trả về { name: "Lớp A" }
+    } catch (error) {
+      console.error("Lỗi khi lấy tên lớp học:", error);
+    }
+  }
+};
+
+// Cập nhật khi route thay đổi
+watch(() => route.params.id, fetchClassName, { immediate: true });
 
 </script>
 

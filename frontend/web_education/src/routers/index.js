@@ -5,6 +5,8 @@ import RegisterView from "@/views/RegisterView.vue";
 import HomePage from "@/views/HomePage.vue";
 import ChangePassword from "@/views/ChangePassword.vue";
 import ClassPeople from "@/views/ClassPeople.vue";
+import ClassAssignment from "@/views/ClassAssignment.vue";
+import ClassFeed from "@/views/ClassFeed.vue";
 import JoinLink from "@/views/JoinLink.vue";
 import JoinTeacher from "@/views/JoinTeacher.vue";
 import { useToast } from "vue-toastification";
@@ -33,6 +35,16 @@ const routes = [
     path: "/class/:id/people",
     component: ClassPeople,
     meta: { title: "Mọi người" },
+  },
+  {
+    path: "/class/:id/feed",
+    component: ClassFeed,
+    meta: { title: "Bảng tin" },
+  },
+  {
+    path: "/class/:id/assignments",
+    component: ClassAssignment,
+    meta: { title: "Bài tập trên lớp" },
   },
   {
     path: "/join/:classId",

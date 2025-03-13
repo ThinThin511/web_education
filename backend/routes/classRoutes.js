@@ -4,6 +4,8 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const Class = require("../models/Class"); // Model lớp học
 const User = require("../models/User");
+const fs = require("fs");
+const path = require("path");
 
 // Cấu hình multer để lưu ảnh (không bắt buộc)
 const storage = multer.diskStorage({
@@ -309,6 +311,48 @@ router.post("/join-teacher/:inviteCode", async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Lỗi khi tham gia lớp học!", error });
+  }
+});
+router.put("/:classId", upload.single("image"), async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const { name, description, classCode } = req.body;
+
+    const classroom = await Class.findById(classId);
+    if (!classroom) {
+      return res.status(404).json({ message: "Lớp học không tồn tại" });
+    }
+
+    let imagePath = classroom.image; // Giữ nguyên ảnh cũ nếu không có ảnh mới
+
+    if (req.file) {
+      // Nếu có ảnh mới, xóa ảnh cũ (nếu có)
+      if (classroom.image) {
+        const oldImagePath = path.join(
+          __dirname,
+          "..",
+          "uploads",
+          path.basename(classroom.image)
+        );
+        fs.unlink(oldImagePath, (err) => {
+          if (err) console.error("Lỗi khi xóa ảnh cũ:", err);
+          else console.log("Ảnh cũ đã bị xóa:", oldImagePath);
+        });
+      }
+      // Cập nhật đường dẫn ảnh mới
+      imagePath = `http://localhost:5000/uploads/${req.file.filename}`;
+    }
+
+    classroom.name = name || classroom.name;
+    classroom.classCode = classCode || classroom.classCode;
+    classroom.description = description || classroom.description;
+    classroom.image = imagePath;
+
+    await classroom.save();
+    res.json({ message: "Cập nhật lớp học thành công!", classroom });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật lớp học:", error);
+    res.status(500).json({ message: "Lỗi server" });
   }
 });
 

@@ -9,7 +9,7 @@
           <div v-for="classItem in userClasses" :key="classItem._id" class="class-card">
   <div class="class-header" :style="{ backgroundImage: `url(${classItem.image || defaultImage})` }">
     <div class="overlay"></div>
-    <h3><router-link :to="`/class/${classItem._id}/people`" class="custom-link">{{ classItem.name }}</router-link></h3>
+    <h3><router-link :to="`/class/${classItem._id}/feed`" class="custom-link">{{ classItem.name }}</router-link></h3>
     <p v-if="classItem.teachers.length > 0">
       Giáo viên: {{ classItem.teachers.map(teacher => teacher.fullname).join(", ") }}
     </p>

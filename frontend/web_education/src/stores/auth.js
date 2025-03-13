@@ -30,6 +30,15 @@ export const useAuthStore = defineStore("auth", {
         // Lưu user và token vào localStorage
         localStorage.setItem("user", JSON.stringify(this.user));
         localStorage.setItem("token", this.token);
+
+        // Kiểm tra nếu có đường dẫn cần chuyển hướng
+        const redirectPath = localStorage.getItem("redirectPath");
+        if (redirectPath) {
+          localStorage.removeItem("redirectPath"); // Xóa sau khi dùng
+          window.location.href = redirectPath; // Chuyển hướng ngay lập tức
+        } else {
+          window.location.href = "/"; // Nếu không có đường dẫn trước đó thì về trang chính
+        }
       } catch (error) {
         console.error(
           "Lỗi đăng nhập:",

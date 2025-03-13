@@ -5,6 +5,10 @@ import RegisterView from "@/views/RegisterView.vue";
 import HomePage from "@/views/HomePage.vue";
 import ChangePassword from "@/views/ChangePassword.vue";
 import ClassPeople from "@/views/ClassPeople.vue";
+import JoinLink from "@/views/JoinLink.vue";
+import { useToast } from "vue-toastification";
+
+const toast = useToast();
 
 const routes = [
   {
@@ -29,6 +33,11 @@ const routes = [
     component: ClassPeople,
     meta: { title: "Mọi người" },
   },
+  {
+    path: "/join/:classId",
+    component: JoinLink,
+    meta: { title: "" },
+  },
 ];
 
 const router = createRouter({
@@ -41,7 +50,11 @@ router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("token");
 
   if (!token && to.path !== "/login" && to.path !== "/register") {
-    next("/login");
+    localStorage.setItem("redirectPath", to.fullPath); // Lưu lại đường dẫn trước khi chuyển hướng
+    toast.error("Bạn cần đăng nhập để tiếp tục!");
+    setTimeout(() => {
+      next("/login"); // Chờ 2 giây rồi mới chuyển hướng
+    }, 2000);
   } else {
     next();
   }

@@ -95,6 +95,54 @@ router.post("/join", async (req, res) => {
   }
 });
 
+router.post("/join/:classId", async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const token = req.header("Authorization")?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Bạn chưa đăng nhập" });
+    }
+
+    // Giải mã token để lấy thông tin user
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ message: "Token không hợp lệ" });
+    }
+
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
+    const classroom = await Class.findById(classId);
+    if (!classroom) {
+      return res.status(404).json({ message: "Lớp học không tồn tại" });
+    }
+
+    // Kiểm tra xem người dùng đã là thành viên chưa
+    if (
+      classroom.students.includes(user.id) ||
+      classroom.teachers.includes(user.id)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Bạn đã là thành viên của lớp này" });
+    }
+
+    // Thêm vào danh sách học sinh
+    classroom.students.push(user.id);
+    await classroom.save();
+
+    res.json({ message: "Tham gia lớp thành công", classroom });
+  } catch (error) {
+    console.error("Lỗi khi tham gia lớp:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
 router.get("/", async (req, res) => {
   try {
     const { userId } = req.query;

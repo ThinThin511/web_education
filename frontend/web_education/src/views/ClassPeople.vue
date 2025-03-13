@@ -35,11 +35,38 @@
             <h2>Bạn học </h2>
             <div>
               <span class="student-count">{{ students.length }} thành viên</span>
-              <button v-if="isTeacher" @click="inviteStudent" class="icon-btn">
+              <button v-if="isTeacher" @click="showInvitePopup = true" class="icon-btn">
                 <i class="fas fa-user-plus"></i>
               </button>
             </div>
-            
+            <!-- Popup mời học sinh -->
+            <div v-if="showInvitePopup" class="popup-overlay">
+              <div class="popup-content">
+                <h3>Mời học sinh vào lớp</h3>
+                <h4>{{classroom?.name}}</h4>
+                <div class="invite-section">
+                  <label>Mã tham gia:</label>
+                  <div class="copy-container">
+                    <span>{{ classroom?.classCode }}</span>
+                    <button @click="copyToClipboard(classroom?.classCode)">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="invite-section">
+                  <label>Link tham gia nhanh:</label>
+                  <div class="copy-container">
+                    <span>{{ joinLink }}</span>
+                    <button @click="copyToClipboard(joinLink)">
+                      <i class="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <button @click="showInvitePopup = false" class="close-btn">Đóng</button>
+              </div>
+            </div>
           </div>
           
           <div v-for="student in students" :key="student.id" class="person">
@@ -78,6 +105,7 @@ const isTeacher = computed(() => {
 const route = useRoute();
 const teachers = ref([]);
 const students = ref([]);
+const classroom = ref(null);
 const classId = ref(localStorage.getItem("classId") || route.params.id);
 
 // Theo dõi sự thay đổi của route.params.id để cập nhật localStorage
@@ -99,6 +127,7 @@ const fetchClassPeople = async () => {
     const response = await axios.get(`http://localhost:5000/api/classes/${classId.value}/people`);
     teachers.value = response.data.teachers;
     students.value = response.data.students;
+    classroom.value = response.data.classroom;
   } catch (error) {
     console.error("Lỗi khi lấy danh sách thành viên:", error);
   }
@@ -122,6 +151,17 @@ const removeStudent = async (studentId) => {
   }
 };
 
+const showInvitePopup = ref(false); // Trạng thái hiển thị popup
+const joinCode = ref(classroom.classCode); // Giả sử mã lớp là "ABC123", bạn có thể lấy từ API
+const joinLink = ref(`http://localhost:5173/join/${classId.value}`); // Link tham gia
+
+const copyToClipboard = (text) => {
+  navigator.clipboard.writeText(text).then(() => {
+    toast.success("Đã sao chép vào clipboard!");
+  }).catch(() => {
+    toast.error("Lỗi khi sao chép!");
+  });
+};
 
 </script>
 
@@ -270,4 +310,80 @@ const removeStudent = async (studentId) => {
 .icon-btn-delete:hover {
   color: darkred;
 }
+
+/* Overlay nền mờ */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Nội dung popup */
+.popup-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 400px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Phần hiển thị mã & link */
+.invite-section {
+  margin: 15px 0;
+}
+
+.copy-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8f8f8;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.copy-container span {
+  flex: 1;
+  text-align: left;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  
+}
+
+.copy-container button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #007bff;
+}
+
+.copy-container button:hover {
+  color: #0056b3;
+}
+
+/* Nút đóng popup */
+.close-btn {
+  margin-top: 10px;
+  padding: 8px 15px;
+  background: red;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.close-btn:hover {
+  background: darkred;
+}
+
 </style>

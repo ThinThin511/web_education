@@ -13,9 +13,14 @@
     <p v-if="classItem.teachers.length > 0">
       Giáo viên: {{ classItem.teachers.map(teacher => teacher.fullname).join(", ") }}
     </p>
-    <img v-if="classItem.teachers.length > 0" 
-         :src="classItem.teachers[0].avatar || defaultAvatar" 
-         class="teacher-avatar" />
+    <div v-if="classItem.teachers.length > 0" class="teacher-avatars">
+  <img 
+    v-for="teacher in classItem.teachers" 
+    :key="teacher._id" 
+    :src="teacher.avatar || defaultAvatar" 
+    class="teacher-avatar"
+  />
+</div>
   </div>
 </div>
 

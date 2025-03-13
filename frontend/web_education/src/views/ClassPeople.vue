@@ -23,7 +23,23 @@
               <i class="fas fa-user-plus"></i>
             </button>
           </div>
-          
+          <!-- Popup mời giáo viên -->
+          <div v-if="showInviteTeacherPopup" class="popup-overlay">
+            <div class="popup-content">
+              <h3>Mời giáo viên vào lớp</h3>
+              <h4>{{classroom?.name}}</h4>
+              <div class="invite-section">
+                <label>Link tham gia nhanh:</label>
+                <div class="copy-container">
+                  <span>{{ teacherJoinLink }}</span>
+                  <button @click="copyToClipboard(teacherJoinLink)">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </div>
+              </div>
+              <button @click="showInviteTeacherPopup = false" class="close-btn">Đóng</button>
+            </div>
+          </div>
           <div v-for="teacher in teachers" :key="teacher.id" class="person">
             <div class="person-left">
               <img :src="teacher.avatar || defaultAvatar" alt="Avatar" class="avatar" />
@@ -152,8 +168,25 @@ const removeStudent = async (studentId) => {
 };
 
 const showInvitePopup = ref(false); // Trạng thái hiển thị popup
-const joinCode = ref(classroom.classCode); // Giả sử mã lớp là "ABC123", bạn có thể lấy từ API
+const showInviteTeacherPopup = ref(false);
 const joinLink = ref(`http://localhost:5173/join/${classId.value}`); // Link tham gia
+const teacherJoinLink = ref("");
+const inviteTeacher = async () => {
+  try {
+    const token = authStore.token;
+    const response = await axios.post(
+      `http://localhost:5000/api/classes/${classId.value}/invite-teacher`,
+      {}, // Không cần gửi dữ liệu trong body
+      { headers: { Authorization: `Bearer ${token}` } } // Truyền token vào headers
+    );
+
+    teacherJoinLink.value = response.data.inviteLink; // Gán link nhận được từ API
+    showInviteTeacherPopup.value = true;
+  } catch (error) {
+    console.error("Lỗi khi tạo link mời giáo viên:", error);
+    toast.error("Không thể tạo link mời giáo viên");
+  }
+};
 
 const copyToClipboard = (text) => {
   navigator.clipboard.writeText(text).then(() => {

@@ -234,4 +234,82 @@ router.delete("/:classId/students/:studentId", async (req, res) => {
   }
 });
 
+router.post("/:classId/invite-teacher", async (req, res) => {
+  try {
+    const { classId } = req.params;
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) return res.status(401).json({ message: "Bạn cần đăng nhập!" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const classData = await Class.findById(classId);
+    if (!classData)
+      return res.status(404).json({ message: "Lớp học không tồn tại!" });
+
+    if (!classData.teachers.includes(userId)) {
+      return res
+        .status(403)
+        .json({ message: "Bạn không có quyền mời giáo viên!" });
+    }
+
+    let inviteCode =
+      classData.teacherInviteCodes.length > 0
+        ? classData.teacherInviteCodes[0] // Lấy mã đầu tiên
+        : Math.random().toString(36).substr(2, 8); // Tạo mã mới
+
+    // Nếu tạo mới, lưu vào database
+    if (classData.teacherInviteCodes.length === 0) {
+      await Class.findByIdAndUpdate(classId, {
+        $push: { teacherInviteCodes: inviteCode },
+      });
+    }
+
+    res.json({
+      inviteLink: `http://localhost:5173/join-teacher/${inviteCode}`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi tạo link mời giáo viên!", error });
+  }
+});
+
+/* ==============================================
+ *  📌 API GIÁO VIÊN THAM GIA LỚP BẰNG MÃ MỜI
+ * ============================================== */
+router.post("/join-teacher/:inviteCode", async (req, res) => {
+  try {
+    const { inviteCode } = req.params;
+    const token = req.headers.authorization?.split(" ")[1]; // Lấy token từ headers
+
+    if (!token) return res.status(401).json({ message: "Bạn cần đăng nhập!" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const classData = await Class.findOne({ teacherInviteCodes: inviteCode });
+    if (!classData) {
+      return res.status(400).json({ message: "Mã mời không hợp lệ!" });
+    }
+
+    if (classData.teachers.includes(userId)) {
+      return res
+        .status(400)
+        .json({ message: "Bạn đã là giáo viên của lớp này!" });
+    }
+
+    // Thêm giáo viên vào lớp và xóa mã mời đã dùng
+    await Class.findByIdAndUpdate(classData._id, {
+      $addToSet: { teachers: userId },
+      $pull: { teacherInviteCodes: inviteCode },
+    });
+
+    res.json({
+      message: "Tham gia lớp học với tư cách là giáo viên thành công!",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi khi tham gia lớp học!", error });
+  }
+});
+
 module.exports = router;

@@ -6,6 +6,7 @@ import HomePage from "@/views/HomePage.vue";
 import ChangePassword from "@/views/ChangePassword.vue";
 import ClassPeople from "@/views/ClassPeople.vue";
 import JoinLink from "@/views/JoinLink.vue";
+import JoinTeacher from "@/views/JoinTeacher.vue";
 import { useToast } from "vue-toastification";
 
 const toast = useToast();
@@ -36,6 +37,11 @@ const routes = [
   {
     path: "/join/:classId",
     component: JoinLink,
+    meta: { title: "" },
+  },
+  {
+    path: "/join-teacher/:inviteCode",
+    component: JoinTeacher,
     meta: { title: "" },
   },
 ];

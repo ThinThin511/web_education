@@ -8,6 +8,7 @@ const ClassSchema = new mongoose.Schema({
   teachers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   createdAt: { type: Date, default: Date.now },
+  teacherInviteCodes: [{ type: String }],
 });
 
 module.exports = mongoose.model("Class", ClassSchema);

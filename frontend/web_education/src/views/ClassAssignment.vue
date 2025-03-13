@@ -14,6 +14,13 @@
             <button @click="openSettings">
               <i class="fas fa-cog"></i> 
             </button>
+            <EditClassPopup 
+                v-if="isPopupOpen" 
+                :isOpen="isPopupOpen" 
+                :classData="selectedClass" 
+                @close="isPopupOpen = false" 
+                @classUpdated="fetchClassData"
+            />
           </div>
         </div>
         <div class="class-people">
@@ -109,6 +116,31 @@ import Sidebar from "@/components/Sidebar.vue";
 import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
+
+import EditClassPopup from "@/components/EditClassPopup.vue";
+
+const isPopupOpen = ref(false);
+const selectedClass = ref(null);
+
+const openSettings = () => {
+  if (classroom.value) {
+    selectedClass.value = {
+      _id: classroom.value._id,
+      name: classroom.value.name,
+      description: classroom.value.description,
+      classCode: classroom.value.classCode,
+      image: classroom.value.image || "",
+    };
+    isPopupOpen.value = true;
+  } else {
+    console.error("Lớp học chưa được tải xong!");
+  }
+};
+
+const fetchClassData = () => {
+  // Load lại dữ liệu lớp học sau khi cập nhật
+  fetchClassPeople();
+};
 const toast = useToast();
 
 const authStore = useAuthStore();

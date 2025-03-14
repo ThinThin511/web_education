@@ -355,5 +355,24 @@ router.put("/:classId", upload.single("image"), async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 });
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Tìm lớp học cần xóa
+    const classToDelete = await Class.findById(id);
+    if (!classToDelete) {
+      return res.status(404).json({ message: "Lớp học không tồn tại" });
+    }
+
+    // Xóa lớp học
+    await Class.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "Lớp học đã được xóa thành công" });
+  } catch (error) {
+    console.error("Lỗi xóa lớp học:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
 
 module.exports = router;

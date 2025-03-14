@@ -33,6 +33,10 @@
             <span v-if="loading">Đang cập nhật...</span>
             <span v-else>Cập nhật</span>
           </button>
+          <button type="button" class="btn btn-danger" @click="deleteClass" :disabled="loading">
+            <span v-if="loading">Đang xóa...</span>
+            <span v-else>Xóa lớp</span>
+          </button>
           <button type="button" class="btn btn-secondary" @click="$emit('close')">Hủy</button>
         </form>
       </div>
@@ -44,6 +48,9 @@
 import { ref, watch } from "vue";
 import axios from "axios";
 import { useToast } from "vue-toastification";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
 
 const toast = useToast();
 
@@ -107,6 +114,26 @@ const updateClass = async () => {
     loading.value = false;
   }
 };
+const deleteClass = async () => {
+  if (!confirm("Bạn có chắc chắn muốn xóa lớp này?")) return;
+
+  try {
+    loading.value = true;
+    await axios.delete(`http://localhost:5000/api/classes/${props.classData._id}`);
+
+    toast.success("Xóa lớp thành công!");
+    emit("classUpdated");
+    emit("close");
+    
+    router.push("/"); // Chuyển hướng về trang chủ
+  } catch (error) {
+    toast.error("Lỗi khi xóa lớp!");
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 </script>
 
 <style scoped>

@@ -34,8 +34,33 @@
 
             <!-- Nội dung bảng tin -->
             <div class="feed-content">
-            <h2>Bảng tin</h2>
-            <!-- Thêm nội dung bảng tin tại đây -->
+              <h2>Bảng tin</h2>
+              <div class="editor-container" :class="{ 'expanded': isExpanded }" @click="expandEditor">
+                <editor
+                  v-if="editorVisible"
+                  v-model="postContent" 
+                  api-key="agxk6am9f2ziuovlmqqo6ggnmg9khr0ie7gjarcqe723ib0d"
+                  :init="editorConfig" 
+                />
+              </div>
+
+              <div class="post-actions" v-if="isExpanded">
+                <button class="btn-cancel" @click="cancelPost">Hủy</button>
+                <button class="btn-post" @click="submitPost">Đăng</button>
+              </div>
+            </div>
+            <!-- Danh sách bài viết -->
+            <div class="post-list">
+              <div v-for="post in posts" :key="post._id" class="post">
+                <div class="post-header">
+                  <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
+                  <div class="post-info">
+                    <p class="author-name">{{ post.authorId?.fullname }}</p>
+                    <p class="post-time">{{ new Date(post.createdAt).toLocaleString() }}</p>
+                  </div>
+                </div>
+                <div class="post-content" v-html="post.content"></div>
+              </div>
             </div>
         </div>
       </section>
@@ -43,7 +68,7 @@
   </div>
 </template>
 <script setup>
-import { ref, watch, onMounted,computed } from "vue";
+import { ref, watch, onMounted,computed,nextTick } from "vue";
 import { useRoute } from "vue-router";
 import axios from "axios";
 import defaultAvatar from "@/assets/avatar.png";
@@ -53,6 +78,40 @@ import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import EditClassPopup from "@/components/EditClassPopup.vue";
+import Editor from "@tinymce/tinymce-vue";
+const isExpanded = ref(false); 
+const editorVisible = ref(true);
+watch(isExpanded, (newVal) => {
+  console.log("TinyMCE đang cập nhật:", newVal);
+  console.log("Editor config trước:", editorConfig.value);
+
+  nextTick(() => {
+    editorConfig.value = {
+      ...editorConfig.value,
+      height: newVal ? 300 : 120,
+    };
+    console.log("Editor config sau:", editorConfig.value);
+  });
+});
+
+const editorConfig = ref({
+  menubar: false,
+  height: 200, // Ban đầu nhỏ
+  placeholder: "Đăng bài lên lớp..."
+});
+
+const expandEditor = () => {
+  isExpanded.value = true;
+};
+
+const cancelPost = () => {
+  postContent.value = "";
+  isExpanded.value = false;
+};
+
+const postContent = ref("");
+
+
 
 const isPopupOpen = ref(false);
 const selectedClass = ref(null);
@@ -91,6 +150,7 @@ const teachers = ref([]);
 const students = ref([]);
 const classroom = ref(null);
 const classId = ref(localStorage.getItem("classId") || route.params.id);
+const posts = ref([]);
 
 // Theo dõi sự thay đổi của route.params.id để cập nhật localStorage
 watch(() => route.params.id, (newId) => {
@@ -103,6 +163,7 @@ watch(() => route.params.id, (newId) => {
 onMounted(() => {
   localStorage.setItem("classId", classId.value);
   fetchClassPeople();
+  fetchPosts();
 });
 
 const fetchClassPeople = async () => {
@@ -114,6 +175,34 @@ const fetchClassPeople = async () => {
     classroom.value = response.data.classroom;
   } catch (error) {
     console.error("Lỗi khi lấy danh sách thành viên:", error);
+  }
+};
+const submitPost = async () => {
+  if (!postContent.value.trim()) {
+    toast.error("Nội dung không được để trống!");
+    return;
+  }
+
+  try {
+    await axios.post(`http://localhost:5000/api/posts`, {
+      content: postContent.value,
+      authorId: currentUser.value.id,
+      classId:classId.value,
+    });
+    toast.success("Đã đăng bài!");
+    postContent.value = ""; // Reset nội dung sau khi đăng
+    fetchPosts();
+  } catch (error) {
+    toast.error("Lỗi khi đăng bài!");
+    console.error("Lỗi khi đăng bài:", error);
+  }
+};
+const fetchPosts = async () => {
+  try {
+    const response = await axios.get(`http://localhost:5000/api/posts/${classId.value}`);
+    posts.value = response.data;
+  } catch (error) {
+    console.error("Lỗi khi lấy bài viết:", error);
   }
 };
 
@@ -278,5 +367,98 @@ const fetchClassPeople = async () => {
   margin: 5px 0 0;
   font-size: 20px;
   opacity: 0.9;
+}
+.editor-container {
+  width: 100%;
+  min-height: 50px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: text;
+  border: 1px solid #ddd;
+  padding: 5px;
+  border-radius: 5px;
+  background-color: white;
+}
+
+.editor-container.expanded {
+  min-height: 200px;
+}
+
+.post-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  justify-content: right;
+}
+
+.btn-post {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-post:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.btn-cancel {
+  background-color: #ffffff;
+  color: blue;
+  padding: 10px 15px;
+  border: 1px solid blue;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background-color: rgba(0, 0, 255, 0.1);
+  transform: scale(1.05);
+}
+.feed-content h2{
+  margin: 30px 0;
+}
+.post {
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.post-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.author-name {
+  font-weight: bold;
+}
+
+.post-time {
+  font-size: 12px;
+  color: gray;
+}
+
+.post-content {
+  margin-top: 10px;
+  line-height: 1.6;
 }
 </style>

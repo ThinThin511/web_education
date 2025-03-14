@@ -55,7 +55,7 @@ import { useAuthStore } from "@/stores/auth";
 const showPopup = ref(false);
 
 import JoinClassPopup from "@/components/JoinClassPopup.vue";
-const showJoinClassPopup = ref(false);
+let showJoinClassPopup = ref(false);
 
 
 const authStore = useAuthStore();

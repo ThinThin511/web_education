@@ -40,6 +40,7 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
 
 const router = useRouter();
 const emit = defineEmits(["close", "classCreated"]);
@@ -48,6 +49,7 @@ const description = ref("");
 const classCode = ref("");
 const image = ref(null);
 const loading = ref(false);
+const toast = useToast();
 
 const generateClassCode = () => {
   classCode.value = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -86,7 +88,7 @@ const createClass = async () => {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    alert(response.data.message);
+    toast.success(response.data.message);
     className.value = "";
     description.value = "";
     generateClassCode();

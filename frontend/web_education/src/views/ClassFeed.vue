@@ -33,8 +33,8 @@
             </div>
 
             <!-- Nội dung bảng tin -->
-            <div class="feed-content">
-              <h2>Bảng tin</h2>
+            <div class="feed-content" style="margin-top: 20px;" v-if="isTeacher">
+              
               <div class="editor-container" :class="{ 'expanded': isExpanded }" @click="expandEditor">
                 <editor
                   v-if="editorVisible"
@@ -43,6 +43,26 @@
                   :init="editorConfig" 
                 />
               </div>
+              <div class="file-upload">
+                <input
+                  type="file"
+                  multiple
+                  @change="handleFileUpload"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                  hidden
+                  ref="fileInput"
+                />
+                <button @click="triggerFileInput">Chọn tệp</button>
+
+                <div v-if="attachedFiles.length" class="file-list">
+                  <div v-for="(file, index) in attachedFiles" :key="index" class="file-item">
+                    <img v-if="file.preview" :src="file.preview" class="file-thumbnail" />
+                    <img v-else :src="getFileIcon(file)" class="file-thumbnail" />
+                    <span>{{ file.name }}</span>
+                    <button @click="removeFile(index)" class="remove-file">×</button>
+                  </div>
+                </div>
+              </div>
 
               <div class="post-actions" v-if="isExpanded">
                 <button class="btn-cancel" @click="cancelPost">Hủy</button>
@@ -50,6 +70,7 @@
               </div>
             </div>
             <!-- Danh sách bài viết -->
+             <h2 style="margin: 20px 0;">Bảng tin</h2>
             <div class="post-list">
               <div v-for="post in posts" :key="post._id" class="post">
                 <div class="post-header">
@@ -60,6 +81,22 @@
                   </div>
                 </div>
                 <div class="post-content" v-html="post.content"></div>
+                <div class="post-attachments" v-if="post.files && post.files.length > 0">
+                  <ul>
+                    <li v-for="file in post.files" :key="file">
+                      <template v-if="isImage(file)">
+                        <img :src="file" :alt="file.split('/').pop()" class="attachment-image" />
+                      </template>
+                      <template v-else>
+                        <a :href="file" target="_blank" style="flex: 1;overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 90%; ">
+                          <img :src="getFileIcon(file)" class="attachment-icon" />
+                          {{ file.split("/").pop() }}
+                        </a>
+                      </template>
+                    </li>
+                  </ul>
+                </div>
+
               </div>
             </div>
         </div>
@@ -73,6 +110,10 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 import defaultAvatar from "@/assets/avatar.png";
 import defaultImage from "@/assets/nen.jpg";
+import defaulticon from "@/assets/default-icon.png";
+import pdf from "@/assets/pdf-icon.png";
+import excel from "@/assets/excel-icon.png";
+import word from "@/assets/word-icon.png";
 import Sidebar from "@/components/Sidebar.vue";
 import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -81,6 +122,34 @@ import EditClassPopup from "@/components/EditClassPopup.vue";
 import Editor from "@tinymce/tinymce-vue";
 const isExpanded = ref(false); 
 const editorVisible = ref(true);
+const attachedFiles = ref([]);
+const fileInput = ref(null);
+
+const isImage = (file) => {
+  return file.match(/\.(jpeg|jpg|png|gif)$/i);
+};
+
+const handleFileUpload = (event) => {
+  attachedFiles.value = Array.from(event.target.files).map((file) => {
+    return {
+      file, 
+      name: file.name,
+      type: file.type,
+      preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+    };
+  });
+};
+const getFileIcon = (file) => {
+  if (!file || typeof file !== "string") return defaulticon; // Kiểm tra file trước khi dùng endsWith
+
+  if (file.endsWith(".pdf")) return pdf;
+  if (file.endsWith(".doc") || file.endsWith(".docx")) return word;
+  if (file.endsWith(".xls") || file.endsWith(".xlsx")) return excel;
+  return defaulticon;
+};
+const removeFile = (index) => attachedFiles.value.splice(index, 1);
+const triggerFileInput = () => fileInput.value.click();
+
 watch(isExpanded, (newVal) => {
   console.log("TinyMCE đang cập nhật:", newVal);
   console.log("Editor config trước:", editorConfig.value);
@@ -178,25 +247,41 @@ const fetchClassPeople = async () => {
   }
 };
 const submitPost = async () => {
-  if (!postContent.value.trim()) {
-    toast.error("Nội dung không được để trống!");
+  if (!postContent.value.trim() && attachedFiles.value.length === 0) {
+    toast.error("Bài viết không thể để trống!");
     return;
   }
 
+  const formData = new FormData();
+  formData.append("content", postContent.value);
+  formData.append("authorId", currentUser.value.id);
+  formData.append("classId", classId.value);
+
+  attachedFiles.value.forEach(({ file }) => {
+  if (file instanceof File) {
+    formData.append("files", file);
+  } else {
+    console.error("Không phải File object:", file);
+  }
+});
+for (let pair of formData.entries()) {
+  console.log(pair[0], pair[1]);
+}
+console.log("Attached Files:", attachedFiles.value);
   try {
-    await axios.post(`http://localhost:5000/api/posts`, {
-      content: postContent.value,
-      authorId: currentUser.value.id,
-      classId:classId.value,
+    await axios.post("http://localhost:5000/api/posts", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
     });
-    toast.success("Đã đăng bài!");
-    postContent.value = ""; // Reset nội dung sau khi đăng
+    toast.success("Bài viết đã được đăng!");
+    postContent.value = "";
+    attachedFiles.value = [];
     fetchPosts();
   } catch (error) {
     toast.error("Lỗi khi đăng bài!");
-    console.error("Lỗi khi đăng bài:", error);
+    console.error(error);
   }
 };
+
 const fetchPosts = async () => {
   try {
     const response = await axios.get(`http://localhost:5000/api/posts/${classId.value}`);
@@ -229,6 +314,7 @@ const fetchPosts = async () => {
 .content {
   flex: 1;
   padding: 20px;
+  
 }
 
 /* Navbar */
@@ -240,9 +326,9 @@ const fetchPosts = async () => {
   padding: 15px 20px;
   border-bottom: 2px solid #ddd;
   position: sticky;
-  top: 0;
-  left: 0;
-  width: 100%;
+  top: 0px;
+  left: 0px;
+  
   z-index: 10;
 }
 
@@ -425,22 +511,31 @@ const fetchPosts = async () => {
 }
 .post {
   background: white;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 15px;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Tăng độ nổi bật */
+  margin-bottom: 20px; /* Tạo khoảng cách giữa các bài viết */
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  border-left: 5px solid #00ff3c; /* Tạo viền màu để phân biệt */
+}
+
+.post:hover {
+  transform: scale(1.02); /* Hiệu ứng phóng to nhẹ khi hover */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .post-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
+  border: 2px solid #00ff3c; /* Viền avatar giúp nổi bật hơn */
 }
 
 .post-info {
@@ -450,15 +545,76 @@ const fetchPosts = async () => {
 
 .author-name {
   font-weight: bold;
+  font-size: 16px;
 }
 
 .post-time {
-  font-size: 12px;
+  font-size: 14px;
   color: gray;
 }
 
 .post-content {
   margin-top: 10px;
+  font-size: 16px;
   line-height: 1.6;
+  color: #333;
+}
+.file-upload {
+  width: 100%;
+}
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f1f1;
+  padding: 8px;
+  border-radius: 5px;
+  margin: 5px;
+}
+.file-thumbnail {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+}
+.remove-file {
+  background: red !important;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.attachment-image {
+  width: 100px;
+  height: auto;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.attachment-icon {
+  width: 50px;
+  height: auto;
+  margin-right: 5px;
+  margin-top: 5PX;
+}
+.file-upload button {
+  background-color: #77ff22;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.file-upload button:hover {
+  background-color: #6aff00;
+  transform: scale(1.05);
 }
 </style>

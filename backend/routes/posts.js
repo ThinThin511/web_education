@@ -1,6 +1,18 @@
 const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post");
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 // API: Lấy danh sách bài viết theo classId
 router.get("/:classId", async (req, res) => {
@@ -15,16 +27,24 @@ router.get("/:classId", async (req, res) => {
 });
 
 // API: Tạo bài viết mới
-router.post("/", async (req, res) => {
-  const { content, authorId, classId } = req.body;
-  if (!content || !authorId || !classId) {
-    return res
-      .status(400)
-      .json({ error: "Thiếu nội dung, tác giả hoặc lớp học" });
-  }
-
+router.post("/", upload.array("files", 5), async (req, res) => {
   try {
-    const newPost = new Post({ content, authorId, classId });
+    console.log("Received body:", req.body);
+    console.log("Received files:", req.files);
+    const { content, authorId, classId } = req.body;
+    const filePaths = req.files
+      ? req.files.map(
+          (file) => `http://localhost:5000/uploads/${file.filename}`
+        )
+      : [];
+
+    const newPost = new Post({
+      content,
+      authorId,
+      classId,
+      files: filePaths, // Lưu danh sách file vào MongoDB
+    });
+
     await newPost.save();
     res.status(201).json(newPost);
   } catch (error) {

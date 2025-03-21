@@ -13,6 +13,7 @@ const PostSchema = new mongoose.Schema(
       ref: "Classroom",
       required: true,
     },
+    files: [{ type: String }],
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

@@ -74,10 +74,26 @@
             <div class="post-list">
               <div v-for="post in posts" :key="post._id" class="post">
                 <div class="post-header">
-                  <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
-                  <div class="post-info">
-                    <p class="author-name">{{ post.authorId?.fullname }}</p>
-                    <p class="post-time">{{ new Date(post.createdAt).toLocaleString() }}</p>
+                  <div class="post-header-left">
+                    <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
+                    <div class="post-info">
+                      <p class="author-name">{{ post.authorId?.fullname }}</p>
+                      <p class="post-time">{{ new Date(post.createdAt).toLocaleString() }}</p>
+                    </div>
+                  </div>
+                  <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(post._id)">
+                    <i class="fas fa-ellipsis-v"></i>
+                    <div v-if="isDropdownOpen === post._id" class="dropdown-menu">
+                      <button @click="openEditPopup(post)">Chỉnh sửa bài viết</button>
+                      <EditPostPopup
+                        v-if="isEditPopupOpen"
+                        :isOpen="isEditPopupOpen"
+                        :post="selectedPost"
+                        @close="() => { isEditPopupOpen = false; console.log('Popup đóng'); }"
+                        @updated="fetchPosts"
+                      />
+                      <button @click="deletePost(post._id)">Xóa bài viết</button>
+                    </div>
                   </div>
                 </div>
                 <div class="post-content" v-html="post.content"></div>
@@ -88,7 +104,7 @@
                         <img :src="file" :alt="file.split('/').pop()" class="attachment-image" />
                       </template>
                       <template v-else>
-                        <a :href="file" target="_blank" style="flex: 1;overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 90%; ">
+                        <a :href="file" target="_blank" style=" flex: 1;text-decoration: none;color: black;overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 90%; ">
                           <img :src="getFileIcon(file)" class="attachment-icon" />
                           {{ file.split("/").pop() }}
                         </a>
@@ -103,6 +119,8 @@
       </section>
     </main>
   </div>
+  <!-- Popup chỉnh sửa bài viết -->
+  
 </template>
 <script setup>
 import { ref, watch, onMounted,computed,nextTick } from "vue";
@@ -119,12 +137,24 @@ import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import EditClassPopup from "@/components/EditClassPopup.vue";
+import EditPostPopup from "@/components/EditPostPopup.vue";
 import Editor from "@tinymce/tinymce-vue";
 const isExpanded = ref(false); 
 const editorVisible = ref(true);
 const attachedFiles = ref([]);
 const fileInput = ref(null);
-
+const isDropdownOpen = ref(false);
+const isEditPopupOpen = ref(false);
+const selectedPost = ref(null)
+const toggleDropdown = (postId) => {
+  isDropdownOpen.value = isDropdownOpen.value === postId ? null : postId;
+};
+const openEditPopup = (post) => {
+  selectedPost.value = post;
+  isEditPopupOpen.value = true;
+  console.log("isEditPopupOpen:", isEditPopupOpen.value); // Kiểm tra trạng thái
+  fetchPosts();
+};
 const isImage = (file) => {
   return file.match(/\.(jpeg|jpg|png|gif)$/i);
 };
@@ -290,6 +320,27 @@ const fetchPosts = async () => {
     console.error("Lỗi khi lấy bài viết:", error);
   }
 };
+const deletePost = async (postId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) return;
+
+  try {
+    const response = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) throw new Error("Xóa bài viết thất bại!");
+
+    // Xóa bài viết khỏi danh sách hiển thị
+    
+    isDropdownOpen.value = null; // Đóng dropdown sau khi xóa
+    fetchPosts();
+    toast.success("Bài viết đã được xóa thành công!");
+  } catch (error) {
+    console.error(error);
+    toast.error("Đã có lỗi xảy ra khi xóa bài viết!");
+  }
+};
+
 
 
 
@@ -526,11 +577,14 @@ const fetchPosts = async () => {
 
 .post-header {
   display: flex;
+  justify-content: space-between;
+}
+.post-header-left {
+  display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 10px;
 }
-
 .avatar {
   width: 50px;
   height: 50px;
@@ -616,5 +670,52 @@ const fetchPosts = async () => {
 .file-upload button:hover {
   background-color: #6aff00;
   transform: scale(1.05);
+}
+.add-class-menu {
+  position: relative;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+
+ 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.add-class-menu:hover {
+  background: #a6a6a6;
+}
+
+/* Dropdown dấu cộng */
+.dropdown-menu {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.dropdown-menu button {
+  padding: 10px;
+  text-decoration: none;
+  color: black;
+  background: white;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropdown-menu button:hover {
+  background: #f1f1f1;
 }
 </style>

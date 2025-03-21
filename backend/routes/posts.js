@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Post = require("../models/Post");
 const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -55,10 +57,91 @@ router.post("/", upload.array("files", 5), async (req, res) => {
 // API: Xóa bài viết theo postId
 router.delete("/:postId", async (req, res) => {
   try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) return res.status(404).json({ error: "Bài viết không tồn tại" });
+
+    // Xóa file nếu có
+    if (post.files && post.files.length > 0) {
+      for (const fileUrl of post.files) {
+        // Lấy phần sau `/uploads/` trong URL
+        const fileName = fileUrl.split("/uploads/")[1];
+        if (!fileName) continue; // Nếu không có fileName, bỏ qua
+
+        const fullPath = path.resolve("uploads", fileName);
+        console.log("File Path:", fullPath);
+
+        if (fs.existsSync(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+            console.log(`Đã xóa file: ${fullPath}`);
+          } catch (err) {
+            console.error(`Không thể xóa file ${fullPath}:`, err);
+          }
+        } else {
+          console.warn(`File không tồn tại: ${fullPath}`);
+        }
+      }
+    }
+
+    // Xóa bài viết khỏi MongoDB
     await Post.findByIdAndDelete(req.params.postId);
-    res.status(200).json({ message: "Đã xóa bài viết" });
+
+    res.status(200).json({ message: "Đã xóa bài viết và file đính kèm" });
   } catch (error) {
+    console.error("Lỗi khi xóa bài viết:", error);
     res.status(500).json({ error: "Lỗi khi xóa bài viết" });
+  }
+});
+// API cập nhật bài viết
+router.put("/:postId", upload.array("files"), async (req, res) => {
+  try {
+    const { content, removedFiles } = req.body;
+    const postId = req.params.postId;
+
+    // Tìm bài viết cần cập nhật
+    const post = await Post.findById(postId);
+    if (!post) return res.status(404).json({ error: "Bài viết không tồn tại" });
+
+    // Xóa các file cũ nếu có trong danh sách removedFiles
+    if (removedFiles) {
+      const filesToRemove = JSON.parse(removedFiles); // Chuyển chuỗi JSON thành mảng
+      for (const fileUrl of filesToRemove) {
+        // Lấy tên file từ URL
+        const fileName = fileUrl.split("/uploads/")[1];
+        if (!fileName) continue; // Nếu không có tên file, bỏ qua
+
+        const filePath = path.join(__dirname, "../uploads", fileName);
+        console.log("Xóa file:", filePath);
+
+        // Kiểm tra và xóa file
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err) => {
+            if (err) console.error(`Không thể xóa file ${filePath}:`, err);
+            else console.log(`Đã xóa file: ${filePath}`);
+          });
+        } else {
+          console.warn(`File không tồn tại: ${filePath}`);
+        }
+      }
+
+      // Cập nhật danh sách file của bài viết (loại bỏ file đã xóa)
+      post.files = post.files.filter((file) => !filesToRemove.includes(file));
+    }
+
+    // Lấy danh sách file mới nếu có
+    const newFiles = req.files
+      ? req.files.map((file) => `/uploads/${file.filename}`)
+      : [];
+
+    // Cập nhật bài viết
+    post.content = content || post.content;
+    post.files = [...post.files, ...newFiles];
+    await post.save();
+
+    res.status(200).json({ message: "Bài viết đã được cập nhật", post });
+  } catch (error) {
+    console.error("Lỗi khi cập nhật bài viết:", error);
+    res.status(500).json({ error: "Lỗi khi cập nhật bài viết" });
   }
 });
 

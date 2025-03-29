@@ -4,8 +4,14 @@
       <div class="popup-content">
         <h2>Chỉnh sửa bài viết</h2>
 
-        <Editor v-model="editedContent" api-key="agxk6am9f2ziuovlmqqo6ggnmg9khr0ie7gjarcqe723ib0d" :init="editorConfig" />
-
+        
+        <QuillEditor   
+          v-model:content="editedContent" 
+          contentType="html"
+          theme="snow"
+          :options="editorConfig"
+          
+        />
         <div class="file-upload">
           <input type="file" multiple @change="handleFileUpload" hidden ref="fileInput" />
           <button @click="triggerFileInput">Chọn tệp</button>
@@ -38,6 +44,8 @@ import defaulticon from "@/assets/default-icon.png";
 import pdf from "@/assets/pdf-icon.png";
 import excel from "@/assets/excel-icon.png";
 import word from "@/assets/word-icon.png";
+import { QuillEditor } from "@vueup/vue-quill";
+import "@vueup/vue-quill/dist/vue-quill.snow.css";
 
 const props = defineProps({
   isOpen: Boolean,
@@ -51,7 +59,18 @@ const editedFiles = ref([]);
 const fileInput = ref(null);
 const originalFiles = ref([]);
 
-const editorConfig = ref({ menubar: false, height: 200, placeholder: "Chỉnh sửa bài viết..." });
+const editorConfig = ref({
+  placeholder: "Chỉnh sửa bài viết...",
+  
+  modules: {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      
+    ],
+  },
+});
 
 watch(() => props.post, (newPost) => {
   if (newPost) {
@@ -172,5 +191,21 @@ const updatePost = async () => {
   border: none;
   padding: 2px 5px;
   cursor: pointer;
+}
+.file-upload button {
+  background-color: #77ff22;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.file-upload button:hover {
+  background-color: #6aff00;
+  transform: scale(1.05);
 }
 </style>

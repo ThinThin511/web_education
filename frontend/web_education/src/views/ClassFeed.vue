@@ -36,14 +36,16 @@
             <div class="feed-content" style="margin-top: 20px;" v-if="isTeacher">
               
               <div class="editor-container" :class="{ 'expanded': isExpanded }" @click="expandEditor">
-                <editor
+                <QuillEditor 
                   v-if="editorVisible"
-                  v-model="postContent" 
-                  api-key="agxk6am9f2ziuovlmqqo6ggnmg9khr0ie7gjarcqe723ib0d"
-                  :init="editorConfig" 
+                  v-model:content="postContent" 
+                  contentType="html"
+                  theme="snow"
+                  :options="editorConfig"
+                  class="custom-quill"
                 />
               </div>
-              <div class="file-upload">
+              <div class="file-upload" v-if="isExpanded">
                 <input
                   type="file"
                   multiple
@@ -138,6 +140,8 @@ import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import EditClassPopup from "@/components/EditClassPopup.vue";
 import EditPostPopup from "@/components/EditPostPopup.vue";
+import { QuillEditor } from "@vueup/vue-quill";
+import "@vueup/vue-quill/dist/vue-quill.snow.css";
 import Editor from "@tinymce/tinymce-vue";
 const isExpanded = ref(false); 
 const editorVisible = ref(true);
@@ -194,18 +198,31 @@ watch(isExpanded, (newVal) => {
 });
 
 const editorConfig = ref({
-  menubar: false,
-  height: 200, // Ban đầu nhỏ
-  placeholder: "Đăng bài lên lớp..."
+  placeholder: "Đăng bài lên lớp...",
+  
+  modules: {
+    toolbar: [
+      [{ header: [1, 2, false] }],
+      ["bold", "italic", "underline"],
+      [{ list: "ordered" }, { list: "bullet" }],
+      
+    ],
+  },
 });
 
 const expandEditor = () => {
   isExpanded.value = true;
+  nextTick(() => {
+    document.querySelector(".custom-quill .ql-editor").style.minHeight = "150px";
+  });
 };
 
 const cancelPost = () => {
   postContent.value = "";
   isExpanded.value = false;
+  nextTick(() => {
+    document.querySelector(".custom-quill .ql-editor").style.minHeight = "50px";
+  });
 };
 
 const postContent = ref("");
@@ -508,17 +525,19 @@ const deletePost = async (postId) => {
 .editor-container {
   width: 100%;
   min-height: 50px;
-  overflow: hidden;
   transition: all 0.3s ease;
-  cursor: text;
   border: 1px solid #ddd;
   padding: 5px;
   border-radius: 5px;
   background-color: white;
+  cursor: text;
 }
 
 .editor-container.expanded {
-  min-height: 200px;
+  min-height: 150px;
+}
+.custom-quill {
+  width: 100%;
 }
 
 .post-actions {

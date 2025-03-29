@@ -75,6 +75,7 @@
              <h2 style="margin: 20px 0;">Bảng tin</h2>
             <div class="post-list">
               <div v-for="post in posts" :key="post._id" class="post">
+                
                 <div class="post-header">
                   <div class="post-header-left">
                     <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
@@ -98,7 +99,9 @@
                     </div>
                   </div>
                 </div>
+                <router-link :to="'/post/' + post._id" class="post-link">
                 <div class="post-content" v-html="post.content"></div>
+                </router-link>
                 <div class="post-attachments" v-if="post.files && post.files.length > 0">
                   <ul>
                     <li v-for="file in post.files" :key="file">
@@ -736,5 +739,10 @@ const deletePost = async (postId) => {
 
 .dropdown-menu button:hover {
   background: #f1f1f1;
+}
+.post-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 </style>

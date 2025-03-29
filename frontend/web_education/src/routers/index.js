@@ -10,6 +10,7 @@ import ClassFeed from "@/views/ClassFeed.vue";
 import JoinLink from "@/views/JoinLink.vue";
 import JoinTeacher from "@/views/JoinTeacher.vue";
 import { useToast } from "vue-toastification";
+import PostDetail from "@/views/PostDetail.vue";
 
 const toast = useToast();
 
@@ -45,6 +46,11 @@ const routes = [
     path: "/class/:id/assignments",
     component: ClassAssignment,
     meta: { title: "Bài tập trên lớp" },
+  },
+  {
+    path: "/post/:postId",
+    component: PostDetail,
+    meta: { title: "Chi tiết bảng tin" },
   },
   {
     path: "/join/:classId",

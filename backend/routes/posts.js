@@ -144,5 +144,23 @@ router.put("/:postId", upload.array("files"), async (req, res) => {
     res.status(500).json({ error: "Lỗi khi cập nhật bài viết" });
   }
 });
+router.get("/detail/:postId", async (req, res) => {
+  try {
+    const postId = req.params.postId;
+    const post = await Post.findById(postId).populate(
+      "authorId",
+      "fullname avatar"
+    );
+
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    res.json(post);
+  } catch (error) {
+    console.error("Lỗi khi lấy bài viết:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
 
 module.exports = router;

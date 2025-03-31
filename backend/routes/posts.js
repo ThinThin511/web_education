@@ -4,6 +4,7 @@ const Post = require("../models/Post");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -160,6 +161,68 @@ router.get("/detail/:postId", async (req, res) => {
   } catch (error) {
     console.error("Lỗi khi lấy bài viết:", error);
     res.status(500).json({ message: "Lỗi server" });
+  }
+});
+router.post("/:postId/comments", async (req, res) => {
+  try {
+    const { text, userId } = req.body;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Bạn cần đăng nhập để bình luận" });
+    }
+
+    if (!text || text.trim() === "") {
+      return res
+        .status(400)
+        .json({ message: "Nội dung bình luận không được để trống" });
+    }
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    const newComment = {
+      userId: new mongoose.Types.ObjectId(userId),
+      text,
+      createdAt: new Date(),
+    };
+
+    post.comments.push(newComment);
+    await post.save();
+
+    // Populate lại bình luận vừa thêm
+    const populatedPost = await Post.findById(req.params.postId).populate(
+      "comments.userId",
+      "fullname avatar"
+    );
+
+    // Lấy bình luận cuối cùng từ post đã populate
+    const populatedComment =
+      populatedPost.comments[populatedPost.comments.length - 1];
+
+    res.status(201).json(populatedComment);
+  } catch (error) {
+    console.error("Lỗi khi thêm bình luận:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+});
+router.get("/:postId/comments", async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId).populate(
+      "comments.userId",
+      "fullname avatar"
+    );
+
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    res.json(post.comments);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error });
   }
 });
 

@@ -15,7 +15,15 @@ const PostSchema = new mongoose.Schema(
     },
     files: [{ type: String }],
     createdAt: { type: Date, default: Date.now },
+    comments: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        text: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
+
   { timestamps: true }
 );
 

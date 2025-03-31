@@ -49,6 +49,24 @@
         </div>
 
         <div v-else class="loading">Đang tải bài viết...</div>
+        <div class="comment-input">
+          <input v-model="newComment" placeholder="Thêm nhận xét trong lớp học..." />
+          <button @click="addComment">Gửi</button>
+        </div>
+        <div class="comments-section">
+          <h3 style="margin-bottom: 10px;">Nhận xét của lớp học</h3>
+          <div v-if="comments.length > 0">
+            <div v-for="comment in comments" :key="comment._id" class="comment">
+              <img :src="comment.userId.avatar || defaultAvatar" class="avatar" />
+              <div class="comment-content">
+                <p class="comment-author">{{ comment.userId.fullname }}</p>
+                <p class="comment-text">{{ comment.text }}</p>
+                <p class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</p>
+              </div>
+            </div>
+          </div>
+          <p v-else>Chưa có nhận xét nào.</p>
+        </div>
       </section>
     </main>
   </div>
@@ -79,6 +97,8 @@ const isTeacher = computed(() => {
  });
 const route = useRoute();
 const post = ref(null);
+const comments = ref([]);
+const newComment = ref("");
 
 const isDropdownOpen = ref(false);
 const isEditPopupOpen = ref(false);
@@ -125,8 +145,41 @@ const deletePost = async (postId) => {
     console.error("Lỗi khi xóa bài viết:", error);
   }
 };
+const fetchComments = async () => {
+  try {
+    const response = await axios.get(`http://localhost:5000/api/posts/${route.params.postId}/comments`);
+    comments.value = response.data;
+  } catch (error) {
+    console.error("Lỗi khi tải bình luận:", error);
+  }
+};
 
-onMounted(fetchPost);
+const addComment = async () => {
+  if (!newComment.value.trim()) return;
+
+  try {
+    console.log("Gửi bình luận:", { text: newComment.value, userId: currentUser.value.id });
+
+    const response = await axios.post(
+      `http://localhost:5000/api/posts/${route.params.postId}/comments`,
+      { text: newComment.value, userId: currentUser.value.id } // Gửi userId lên server
+    );
+
+    console.log("Phản hồi từ server:", response.data);
+    comments.value.push(response.data);
+    newComment.value = "";
+  } catch (error) {
+    console.error("Lỗi khi thêm bình luận:", error.response?.data || error);
+  }
+};
+
+
+
+onMounted(()=>{
+  fetchPost();
+  fetchComments();
+});
+
 </script>
 
 <style scoped>
@@ -144,9 +197,10 @@ onMounted(fetchPost);
 .content {
   flex: 1;
   display: flex;
-  justify-content: center;
-  
+  flex-direction: column; /* Xếp nội dung theo chiều dọc */
+  align-items: center; /* Căn giữa nội dung */
   background-color: #e0e0e0;
+  padding: 20px;
 }
 
 .post {
@@ -160,6 +214,7 @@ onMounted(fetchPost);
   border-left: 5px solid #00ff3c; /* Tạo viền màu để phân biệt */
   height: fit-content;
   margin-top: 30px;
+  margin-bottom: 20px;
 }
 
 .loading {
@@ -308,5 +363,63 @@ onMounted(fetchPost);
 
 .dropdown-menu button:hover {
   background: #f1f1f1;
+}
+.comments-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 80%;
+  
+}
+
+.comment {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: row;
+  gap: 10px;
+  margin-bottom: 5px;
+}
+
+.comment-content {
+  background: #f1f1f1;
+  padding: 10px;
+  border-radius: 8px;
+  flex: 1;
+  height: fit-content;
+}
+
+.comment-author {
+  font-weight: bold;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: gray;
+}
+
+.comment-input {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+.comment-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.comment-input button {
+  margin-left: 10px;
+  padding: 8px 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 </style>

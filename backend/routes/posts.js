@@ -211,10 +211,12 @@ router.post("/:postId/comments", async (req, res) => {
 });
 router.get("/:postId/comments", async (req, res) => {
   try {
-    const post = await Post.findById(req.params.postId).populate(
-      "comments.userId",
-      "fullname avatar"
-    );
+    const post = await Post.findById(req.params.postId)
+      .populate("comments.userId", "fullname avatar")
+      .populate({
+        path: "comments.replies.userId",
+        select: "fullname avatar",
+      });
 
     if (!post) {
       return res.status(404).json({ message: "Bài viết không tồn tại" });
@@ -225,5 +227,163 @@ router.get("/:postId/comments", async (req, res) => {
     res.status(500).json({ message: "Lỗi server", error });
   }
 });
+router.post("/:postId/comments/:commentId/replies", async (req, res) => {
+  try {
+    const { text, userId } = req.body;
+    if (!text || !userId) {
+      return res.status(400).json({ message: "Thiếu nội dung hoặc userId" });
+    }
+
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    const comment = post.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    comment.replies.push({
+      userId,
+      text,
+      createdAt: new Date(),
+    });
+
+    await post.save();
+    await post.populate(
+      "comments.userId comments.replies.userId",
+      "fullname avatar"
+    );
+
+    res.status(201).json(comment.replies);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+});
+// API: Xoá bình luận
+router.delete("/:postId/comments/:commentId", async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    // Xoá bình luận trong bài viết
+    const commentIndex = post.comments.findIndex(
+      (comment) => comment._id.toString() === commentId
+    );
+    if (commentIndex === -1) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    post.comments.splice(commentIndex, 1);
+    await post.save();
+
+    res.status(200).json({ message: "Bình luận đã được xóa" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xóa bình luận", error: error.message });
+  }
+});
+// API: Cập nhật bình luận
+router.put("/:postId/comments/:commentId", async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { text } = req.body;
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return res.status(404).json({ message: "Bài viết không tồn tại" });
+    }
+
+    // Tìm và cập nhật bình luận
+    const comment = post.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    comment.text = text || comment.text;
+    await post.save();
+
+    res.status(200).json({ message: "Bình luận đã được cập nhật", comment });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi cập nhật bình luận", error: error.message });
+  }
+});
+// API: Xoá phản hồi
+router.delete(
+  "/:postId/comments/:commentId/replies/:replyId",
+  async (req, res) => {
+    try {
+      const { postId, commentId, replyId } = req.params;
+
+      const post = await Post.findById(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Bài viết không tồn tại" });
+      }
+
+      const comment = post.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({ message: "Bình luận không tồn tại" });
+      }
+
+      const replyIndex = comment.replies.findIndex(
+        (reply) => reply._id.toString() === replyId
+      );
+      if (replyIndex === -1) {
+        return res.status(404).json({ message: "Phản hồi không tồn tại" });
+      }
+
+      comment.replies.splice(replyIndex, 1);
+      await post.save();
+
+      res.status(200).json({ message: "Phản hồi đã được xóa" });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Lỗi khi xóa phản hồi", error: error.message });
+    }
+  }
+);
+// API: Cập nhật phản hồi
+router.put(
+  "/:postId/comments/:commentId/replies/:replyId",
+  async (req, res) => {
+    try {
+      const { postId, commentId, replyId } = req.params;
+      const { text } = req.body;
+
+      const post = await Post.findById(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Bài viết không tồn tại" });
+      }
+
+      const comment = post.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({ message: "Bình luận không tồn tại" });
+      }
+
+      const reply = comment.replies.id(replyId);
+      if (!reply) {
+        return res.status(404).json({ message: "Phản hồi không tồn tại" });
+      }
+
+      reply.text = text || reply.text;
+      await post.save();
+
+      res.status(200).json({ message: "Phản hồi đã được cập nhật", reply });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Lỗi khi cập nhật phản hồi", error: error.message });
+    }
+  }
+);
 
 module.exports = router;

@@ -58,15 +58,76 @@
           <div v-if="comments.length > 0">
             <div v-for="comment in comments" :key="comment._id" class="comment">
               <img :src="comment.userId.avatar || defaultAvatar" class="avatar" />
+
               <div class="comment-content">
                 <p class="comment-author">{{ comment.userId.fullname }}</p>
                 <p class="comment-text">{{ comment.text }}</p>
                 <p class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</p>
+                
+                <div class="actions">
+                  <button @click="showReplyInput[comment._id] = !showReplyInput[comment._id]">
+                    Trả lời
+                  </button>
+                  <div class="comment-actions" v-if="user === comment.userId._id || isTeacher">
+                  
+                    <button v-if="user === comment.userId._id" @click="editComment(comment)">Chỉnh sửa</button>
+                    <button @click="deleteComment(comment._id)">Xóa {{ currentUser._id }}</button>
+                  </div>
+                </div>
+                <div v-if="editingCommentId === comment._id" class="edit-section">
+                  <input v-model="editingText" placeholder="Chỉnh sửa bình luận..." />
+                  <div class="edit-buttons">
+                    <button @click="saveEditComment()">Lưu</button>
+                    <button @click="editingCommentId = null">Hủy</button>
+                  </div>
+                </div>
+                <!-- reply-section nằm TRONG comment-content -->
+                <div class="reply-section">
+                  <!-- <button @click="showReplyInput[comment._id] = !showReplyInput[comment._id]">
+                    Trả lời
+                  </button> -->
+
+                  <div v-if="showReplyInput[comment._id]" class="reply-input">
+                    <input
+                      v-model="replyTexts[comment._id]"
+                      placeholder="Nhập phản hồi..."
+                    />
+                    <button @click="sendReply(comment._id)">Gửi</button>
+                  </div>
+
+                  <div v-if="comment.replies && comment.replies.length">
+                    <div
+                      v-for="reply in comment.replies"
+                      :key="reply._id"
+                      class="reply"
+                    >
+                      <img :src="reply.userId.avatar || defaultAvatar" class="avatar" />
+                      <div class="comment-content">
+                        <p class="comment-author">{{ reply.userId.fullname }}</p>
+                        <p class="comment-text">{{ reply.text }}</p>
+                        <p class="comment-time">{{ new Date(reply.createdAt).toLocaleString() }}</p>
+                        <div class="comment-actions" v-if="user=== reply.userId._id || isTeacher">
+                          <button v-if="user=== reply.userId._id" @click="editReply(comment._id, reply)">Chỉnh sửa</button>
+                          <button @click="deleteReply(comment._id, reply._id)">Xóa</button> 
+                        </div>
+                        <div v-if="editingReplyId === reply._id" class="edit-section">
+                          <input v-model="editingText" placeholder="Chỉnh sửa phản hồi..." />
+                          <div class="edit-buttons">
+                            <button @click="saveEditReply(comment._id)">Lưu</button>
+                            <button @click="editingReplyId = null">Hủy</button>
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
           <p v-else>Chưa có nhận xét nào.</p>
         </div>
+
       </section>
     </main>
   </div>
@@ -86,12 +147,12 @@ import defaulticon from "@/assets/default-icon.png";
 import pdf from "@/assets/pdf-icon.png";
 import excel from "@/assets/excel-icon.png";
 import word from "@/assets/word-icon.png";
-
+import { useToast } from "vue-toastification";
 // const toast = useToast();
 
 const authStore = useAuthStore();
 const currentUser = ref(authStore.user); // Lưu thông tin người dùng hiện tại
-
+const user = currentUser.value.id;
 const isTeacher = computed(() => {
    return post.value?.authorId?._id === currentUser.value.id;
  });
@@ -102,6 +163,9 @@ const newComment = ref("");
 
 const isDropdownOpen = ref(false);
 const isEditPopupOpen = ref(false);
+const toast = useToast();
+const replyTexts = ref({});
+const showReplyInput = ref({});
 const isImage = (file) => {
   return file.match(/\.(jpeg|jpg|png|gif)$/i);
 };
@@ -139,7 +203,7 @@ const openEditPopup = (post) => {
 const deletePost = async (postId) => {
   try {
     await axios.delete(`/api/posts/${postId}`);
-    alert("Bài viết đã bị xóa");
+    toast.success("Bài viết đã bị xóa");
     window.history.back(); // Quay lại trang trước
   } catch (error) {
     console.error("Lỗi khi xóa bài viết:", error);
@@ -164,7 +228,7 @@ const addComment = async () => {
       `http://localhost:5000/api/posts/${route.params.postId}/comments`,
       { text: newComment.value, userId: currentUser.value.id } // Gửi userId lên server
     );
-
+    toast.success("Nhận xét đã được đăng");
     console.log("Phản hồi từ server:", response.data);
     comments.value.push(response.data);
     newComment.value = "";
@@ -172,6 +236,73 @@ const addComment = async () => {
     console.error("Lỗi khi thêm bình luận:", error.response?.data || error);
   }
 };
+const sendReply = async (commentId) => {
+  const reply = replyTexts.value[commentId]?.trim();
+  if (!reply) return;
+
+  try {
+    const response = await axios.post(
+      `http://localhost:5000/api/posts/${route.params.postId}/comments/${commentId}/replies`,
+      {
+        text: reply,
+        userId: currentUser.value.id,
+      }
+    );
+      toast.success("Đã trả lời nhận xét");
+    // Cập nhật comment cụ thể
+    const updatedReplies = response.data;
+    const commentIndex = comments.value.findIndex((c) => c._id === commentId);
+    if (commentIndex !== -1) {
+      comments.value[commentIndex].replies = updatedReplies;
+    }
+
+    replyTexts.value[commentId] = "";
+    showReplyInput.value[commentId] = false;
+  } catch (error) {
+    console.error("Lỗi khi gửi phản hồi:", error.response?.data || error);
+  }
+};
+const editingCommentId = ref(null)
+const editingReplyId = ref(null)
+const editingText = ref("")
+
+const deleteComment = async (commentId) => {
+  await axios.delete(`http://localhost:5000/api/posts/${route.params.postId}/comments/${commentId}`)
+  await fetchComments()
+  toast.success("Xóa nhận xét thành công");
+}
+
+const deleteReply = async (commentId, replyId) => {
+  await axios.delete(`http://localhost:5000/api/posts/${route.params.postId}/comments/${commentId}/replies/${replyId}`)
+  await fetchComments()
+  toast.success("Đã xóa câu trả lời");
+}
+
+const editComment = (comment) => {
+  editingCommentId.value = comment._id
+  editingText.value = comment.text
+}
+
+const editReply = (commentId, reply) => {
+  editingReplyId.value = reply._id
+  editingText.value = reply.text
+}
+
+const saveEditComment = async () => {
+  await axios.put(`http://localhost:5000/api/posts/${route.params.postId}/comments/${editingCommentId.value}`, { text: editingText.value })
+  editingCommentId.value = null
+  editingText.value = ""
+  await fetchComments()
+  toast.success("Đã cập nhật nhận xét");
+}
+
+const saveEditReply = async (commentId) => {
+  await axios.put(`http://localhost:5000/api/posts/${route.params.postId}/comments/${commentId}/replies/${editingReplyId.value}`, { text: editingText.value })
+  editingReplyId.value = null
+  editingText.value = ""
+  await fetchComments()
+  toast.success("Đã cập nhật câu trả lời");
+}
 
 
 
@@ -373,21 +504,21 @@ onMounted(()=>{
   width: 80%;
   
 }
-
+.comments-section {
+  margin-top: 20px;
+}
 .comment {
   display: flex;
   align-items: flex-start;
-  flex-direction: row;
   gap: 10px;
-  margin-bottom: 5px;
+  margin-bottom: 20px; /* Tăng khoảng cách giữa các bình luận */
 }
 
 .comment-content {
   background: #f1f1f1;
-  padding: 10px;
+  padding: 10px 12px;
   border-radius: 8px;
   flex: 1;
-  height: fit-content;
 }
 
 .comment-author {
@@ -422,4 +553,152 @@ onMounted(()=>{
   border: none;
   cursor: pointer;
 }
+.reply-section {
+  margin-left: 60px; /* Lùi vào so với bình luận cha */
+  margin-top: 8px;
+}
+
+.reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.reply .comment-content {
+  background: #e9e9e9;
+  padding: 8px 10px;
+  border-radius: 8px;
+  flex: 1;
+}
+
+.reply-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.reply-input input {
+  flex: 1;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+
+.reply-input button {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.reply-input button:hover {
+  background-color: #218838;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: gray;
+  margin-top: 4px;
+}
+
+.comment-author {
+  font-weight: bold;
+}
+
+.reply-section > button {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #007bff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  
+}
+
+.reply-section > button:hover {
+  text-decoration: underline;
+}
+
+.comment-actions > button {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #007bff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 10px;
+}
+.comment-actions > button:hover {
+  text-decoration: underline;
+}
+.edit-section {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+}
+
+.edit-section input {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+.edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-buttons button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.edit-buttons button:first-child {
+  background-color: #4CAF50; /* màu xanh lưu */
+  color: white;
+}
+
+.edit-buttons button:last-child {
+  background-color: #ccc; /* màu xám hủy */
+  color: black;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.actions button {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.actions button:hover {
+  text-decoration: underline;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 10px;
+}
+
 </style>

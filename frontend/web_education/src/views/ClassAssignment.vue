@@ -23,89 +23,61 @@
             />
           </div>
         </div>
-        <div class="class-people">
-          <div class="class-title">
-            <h2>Giáo viên</h2>
-            <button v-if="isTeacher" @click="inviteTeacher" class="icon-btn">
-              <i class="fas fa-user-plus"></i>
-            </button>
-          </div>
-          <!-- Popup mời giáo viên -->
-          <div v-if="showInviteTeacherPopup" class="popup-overlay">
-            <div class="popup-content">
-              <h3>Mời giáo viên vào lớp</h3>
-              <h4>{{classroom?.name}}</h4>
-              <div class="invite-section">
-                <label>Link tham gia nhanh:</label>
-                <div class="copy-container">
-                  <span>{{ teacherJoinLink }}</span>
-                  <button @click="copyToClipboard(teacherJoinLink)">
-                    <i class="fas fa-copy"></i>
-                  </button>
-                </div>
-              </div>
-              <button @click="showInviteTeacherPopup = false" class="close-btn">Đóng</button>
-            </div>
-          </div>
-          <div v-for="teacher in teachers" :key="teacher.id" class="person">
-            <div class="person-left">
-              <img :src="teacher.avatar || defaultAvatar" alt="Avatar" class="avatar" />
-              <span><h5>{{ teacher.fullname }}</h5></span>
-            </div>
-            
-          </div>
-          <div class="class-title">
-            <h2>Bạn học </h2>
-            <div>
-              <span class="student-count">{{ students.length }} thành viên</span>
-              <button v-if="isTeacher" @click="showInvitePopup = true" class="icon-btn">
-                <i class="fas fa-user-plus"></i>
-              </button>
-            </div>
-            <!-- Popup mời học sinh -->
-            <div v-if="showInvitePopup" class="popup-overlay">
-              <div class="popup-content">
-                <h3>Mời học sinh vào lớp</h3>
-                <h4>{{classroom?.name}}</h4>
-                <div class="invite-section">
-                  <label>Mã tham gia:</label>
-                  <div class="copy-container">
-                    <span>{{ classroom?.classCode }}</span>
-                    <button @click="copyToClipboard(classroom?.classCode)">
-                      <i class="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
+        <div v-if="isTeacher" class="create-btn-container">
+          <button class="create-btn" @click="showCreatePopup = true">
+            <i class="fas fa-plus"></i> Tạo
+          </button>
+        </div>
 
-                <div class="invite-section">
-                  <label>Link tham gia nhanh:</label>
-                  <div class="copy-container">
-                    <span>{{ joinLink }}</span>
-                    <button @click="copyToClipboard(joinLink)">
-                      <i class="fas fa-copy"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <button @click="showInvitePopup = false" class="close-btn">Đóng</button>
-              </div>
+        <div class="assignments-list">
+          <h2>Bài tập đã giao</h2>
+          <div v-if="assignments.length === 0">Chưa có bài tập nào.</div>
+          <div v-else class="assignment-card" v-for="assignment in assignments" :key="assignment._id">
+            <div class="assignment-header">
+              <h3>{{ assignment.title }}</h3>
+              <small>Hạn nộp: {{ new Date(assignment.dueDate).toLocaleString() }}</small>
             </div>
-          </div>
-          
-          <div v-for="student in students" :key="student.id" class="person">
-            <div class="person-left">
-              <img :src="student.avatar || defaultAvatar" alt="Avatar" class="avatar" />
-              <span><h5>{{ student.fullname }}</h5></span>
+            <p v-html="assignment.description"></p>
+            <div class="assignment-meta">
+              <span>Điểm tối đa: {{ assignment.maxScore }}</span>
+              <span>Người giao: {{ assignment.teacherId.fullname }}</span>
             </div>
-            <button v-if="isTeacher" @click="removeStudent(student._id)" class="icon-btn-delete">
-              <i class="fas fa-trash"></i>
-            </button>
-
+            <router-link :to="`/assignments/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
           </div>
         </div>
+
       </section>
     </main>
   </div>
+  <!-- POPUP TẠO BÀI TẬP -->
+<div v-if="showCreatePopup" class="popup-overlay">
+  <div class="popup-content">
+    <h3>Tạo bài tập</h3>
+    <form @submit.prevent="createAssignment">
+      <label>Tiêu đề</label>
+      <input v-model="newAssignment.title" placeholder="Nhập tiêu đề bài tập" required />
+
+      <label>Nội dung bài tập</label>
+      <textarea v-model="newAssignment.description" placeholder="Nhập nội dung bài tập" rows="4"></textarea>
+
+      <label>Hạn nộp</label>
+      <input type="datetime-local" v-model="newAssignment.dueDate" required />
+
+      <label>Điểm tối đa</label>
+      <input type="number" v-model="newAssignment.maxScore" placeholder="VD: 10" required />
+
+      <label>Tệp đính kèm</label>
+      <input type="file" multiple @change="handleFiles" />
+
+      <div style="margin-top: 10px;">
+        <button type="submit" class="btn-submit">Tạo</button>
+        <button type="button" @click="showCreatePopup = false" class="close-btn">Hủy</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
 </template>
 <script setup>
 import { ref, watch, onMounted,computed } from "vue";
@@ -118,7 +90,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 
 import EditClassPopup from "@/components/EditClassPopup.vue";
-
+const showCreatePopup = ref(false);
 const isPopupOpen = ref(false);
 const selectedClass = ref(null);
 
@@ -168,6 +140,47 @@ onMounted(() => {
   localStorage.setItem("classId", classId.value);
   fetchClassPeople();
 });
+
+const newAssignment = ref({
+  title: "",
+  description: "",
+  dueDate: "",
+  maxScore: "",
+  files: [],
+});
+
+const handleFiles = (e) => {
+  newAssignment.value.files = Array.from(e.target.files);
+};
+
+const createAssignment = async () => {
+  try {
+    const formData = new FormData();
+    formData.append("title", newAssignment.value.title);
+    formData.append("description", newAssignment.value.description);
+    formData.append("dueDate", newAssignment.value.dueDate);
+    formData.append("maxScore", newAssignment.value.maxScore);
+    formData.append("classId", classId.value);
+    formData.append("teacherId", currentUser.value.id);
+    newAssignment.value.files.forEach((file) => {
+      formData.append("attachments", file);
+    });
+
+    await axios.post("http://localhost:5000/api/assignments", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    toast.success("Tạo bài tập thành công!");
+    showCreatePopup.value = false;
+    fetchAssignments(); // cập nhật lại danh sách
+  } catch (err) {
+    console.error("Lỗi khi tạo bài tập:", err);
+    toast.error("Tạo bài tập thất bại!");
+  }
+};
+
 
 const fetchClassPeople = async () => {
   try {
@@ -227,7 +240,20 @@ const copyToClipboard = (text) => {
     toast.error("Lỗi khi sao chép!");
   });
 };
+const assignments = ref([]);
 
+const fetchAssignments = async () => {
+  try {
+    const res = await axios.get(`http://localhost:5000/api/assignments/class/${classId.value}`);
+    assignments.value = res.data;
+  } catch (err) {
+    console.error("Lỗi khi lấy bài tập:", err);
+  }
+};
+
+onMounted(() => {
+  fetchAssignments(); // gọi khi trang được tải
+});
 </script>
 
 <style scoped>
@@ -449,6 +475,115 @@ const copyToClipboard = (text) => {
 
 .close-btn:hover {
   background: darkred;
+}
+.assignments-list {
+  margin-top: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.assignment-card {
+  background-color: #e8f0fe;
+  border-radius: 12px;
+  padding: 16px;
+  
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 12px;
+}
+
+.assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.assignment-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.due-date {
+  font-size: 14px;
+  color: #555;
+}
+
+.score, .creator {
+  font-size: 14px;
+  margin-top: 4px;
+  color: #555;
+}
+
+.detail-link {
+  margin-top: 8px;
+  display: inline-block;
+  color: #1a73e8;
+  text-decoration: underline;
+}
+
+.assignment-meta {
+  margin-top: 10px;
+  color: gray;
+  font-size: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.view-detail {
+  margin-top: 10px;
+  display: inline-block;
+  color: blue;
+  text-decoration: underline;
+  font-weight: 500;
+}
+.create-btn-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+  margin-top: 10px;
+  margin-right: 10px;
+}
+
+.create-btn {
+  background-color: #1a73e8;
+  color: white;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.create-btn i {
+  margin-right: 5px;
+}
+
+.popup-content form input,
+.popup-content form textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.btn-submit {
+  background-color: #28a745;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  margin-right: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.popup-content label {
+  display: block;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 5px;
 }
 
 </style>

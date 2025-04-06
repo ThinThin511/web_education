@@ -23,6 +23,9 @@ app.use("/api/classes", classRoutes);
 const postRoutes = require("./routes/posts");
 app.use("/api/posts", postRoutes);
 
+const assignmentRoutes = require("./routes/assignments");
+app.use("/api/assignments", assignmentRoutes);
+
 app.get("/", (req, res) => res.send("API is running..."));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

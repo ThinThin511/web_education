@@ -30,12 +30,57 @@
         </div>
 
         <div class="assignments-list">
-          <h2>Bài tập đã giao</h2>
-          <div v-if="assignments.length === 0">Chưa có bài tập nào.</div>
-          <div v-else class="assignment-card" v-for="assignment in assignments" :key="assignment._id">
+          <h2>Bài tập đang diễn ra</h2>
+          <div v-if="upcomingAssignments.length === 0">Chưa có bài tập nào đang diễn ra.</div>
+          <div v-else class="assignment-card" v-for="assignment in upcomingAssignments" :key="assignment._id">
+            <!-- Hiển thị bài tập đang diễn ra -->
             <div class="assignment-header">
               <h3>{{ assignment.title }}</h3>
               <small>Hạn nộp: {{ new Date(assignment.dueDate).toLocaleString() }}</small>
+              <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(assignment._id)">
+                <i class="fas fa-ellipsis-v"></i>
+                <div v-if="isDropdownOpen === assignment._id" class="dropdown-menu">
+                  <button @click="openEditPopup(assignment)">Chỉnh sửa bài tập</button>
+                  <EditAssignmentPopup
+                      v-if="isEditPopupOpen && selectedAssignment"
+                      :isOpen="isEditPopupOpen"
+                      :assignment="selectedAssignment"
+                      @close="() => { isEditPopupOpen = false; console.log('Popup đóng'); }"
+                      @updated="fetchAssignments"
+                    />
+                  <button @click="deleteAssignment(assignment._id)">Xóa bài tập</button>
+                </div>
+              </div>
+            </div>
+            <p v-html="assignment.description"></p>
+            <div class="assignment-meta">
+              <span>Điểm tối đa: {{ assignment.maxScore }}</span>
+              <span>Người giao: {{ assignment.teacherId.fullname }}</span>
+            </div>
+            <router-link :to="`/assignments/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
+          </div>
+
+          <h2>Bài tập đã hết hạn</h2>
+          <div v-if="pastAssignments.length === 0">Chưa có bài tập nào đã hết hạn.</div>
+          <div v-else class="assignment-card" v-for="assignment in pastAssignments" :key="assignment._id">
+            <!-- Hiển thị bài tập đã hết hạn -->
+            <div class="assignment-header">
+              <h3>{{ assignment.title }}</h3>
+              <small>Hạn nộp: {{ new Date(assignment.dueDate).toLocaleString() }}</small>
+              <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(assignment._id)">
+                <i class="fas fa-ellipsis-v"></i>
+                <div v-if="isDropdownOpen === assignment._id" class="dropdown-menu">
+                  <button @click="openEditPopup(assignment)">Chỉnh sửa bài tập</button>
+                  <EditAssignmentPopup
+                      v-if="isEditPopupOpen && selectedAssignment"
+                      :isOpen="isEditPopupOpen"
+                      :assignment="selectedAssignment"
+                      @close="() => { isEditPopupOpen = false; console.log('Popup đóng'); }"
+                      @updated="fetchAssignments"
+                    />
+                  <button @click="deleteAssignment(assignment._id)">Xóa bài tập</button>
+                </div>
+              </div>
             </div>
             <p v-html="assignment.description"></p>
             <div class="assignment-meta">
@@ -58,7 +103,7 @@
       <input v-model="newAssignment.title" placeholder="Nhập tiêu đề bài tập" required />
 
       <label>Nội dung bài tập</label>
-      <textarea v-model="newAssignment.description" placeholder="Nhập nội dung bài tập" rows="4"></textarea>
+      <textarea v-model="newAssignment.content" placeholder="Nhập nội dung bài tập" rows="2"></textarea>
 
       <label>Hạn nộp</label>
       <input type="datetime-local" v-model="newAssignment.dueDate" required />
@@ -67,7 +112,20 @@
       <input type="number" v-model="newAssignment.maxScore" placeholder="VD: 10" required />
 
       <label>Tệp đính kèm</label>
-      <input type="file" multiple @change="handleFiles" />
+      <div class="file-upload">
+        <input type="file" multiple @change="handleFileUpload" hidden ref="fileInput" />
+        <button @click.prevent="triggerFileInput">Chọn tệp</button>
+
+        <div v-if="selectedFiles.length" class="file-list">
+          <div v-for="(file, index) in selectedFiles" :key="index" class="file-item">
+            <img v-if="isImage(file)" :src="getFileURL(file)" class="file-thumbnail" />
+            <img v-else :src="getFileIcon(file)" class="file-thumbnail" />
+            <span>{{ getFileName(file) }}</span>
+            <button @click.prevent="removeFile(index)" class="remove-file">×</button>
+          </div>
+        </div>
+      </div>
+
 
       <div style="margin-top: 10px;">
         <button type="submit" class="btn-submit">Tạo</button>
@@ -88,12 +146,57 @@ import Sidebar from "@/components/Sidebar.vue";
 import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
+import EditAssignmentPopup from "@/components/EditAssignmentPopup.vue";
 
 import EditClassPopup from "@/components/EditClassPopup.vue";
 const showCreatePopup = ref(false);
 const isPopupOpen = ref(false);
 const selectedClass = ref(null);
+const selectedAssignment = ref(null);
+const isEditPopupOpen = ref(false);
+const openEditPopup = (assignment) => {
+  selectedAssignment.value = assignment;
+  isEditPopupOpen.value = true;
+  console.log("isEditPopupOpen:", isEditPopupOpen.value); // Kiểm tra trạng thái
+  fetchAssignments();
+};
+import defaulticon from "@/assets/default-icon.png";
+import pdf from "@/assets/pdf-icon.png";
+import excel from "@/assets/excel-icon.png";
+import word from "@/assets/word-icon.png";
 
+const selectedFiles = ref([]);
+const fileInput = ref(null);
+
+const triggerFileInput = () => fileInput.value.click();
+
+const handleFileUpload = (e) => {
+  const files = Array.from(e.target.files);
+  selectedFiles.value.push(...files);
+};
+
+const removeFile = (index) => selectedFiles.value.splice(index, 1);
+
+const isImage = (file) => {
+  const name = typeof file === 'string' ? file : file.name;
+  return /\.(jpeg|jpg|png|gif)$/i.test(name);
+};
+
+const getFileIcon = (file) => {
+  const name = typeof file === 'string' ? file : file.name;
+  if (name.endsWith(".pdf")) return pdf;
+  if (name.endsWith(".doc") || name.endsWith(".docx")) return word;
+  if (name.endsWith(".xls") || name.endsWith(".xlsx")) return excel;
+  return defaulticon;
+};
+
+const getFileName = (file) => {
+  return typeof file === "string" ? file.split("/").pop() : file.name;
+};
+
+const getFileURL = (file) => {
+  return typeof file === "string" ? file : URL.createObjectURL(file);
+};
 const openSettings = () => {
   if (classroom.value) {
     selectedClass.value = {
@@ -149,20 +252,31 @@ const newAssignment = ref({
   files: [],
 });
 
+const previewFiles = ref([]);
+
 const handleFiles = (e) => {
-  newAssignment.value.files = Array.from(e.target.files);
+  const files = Array.from(e.target.files);
+  newAssignment.value.files = files;
+
+  // Tạo preview nếu là ảnh
+  previewFiles.value = files
+    .filter(file => file.type.startsWith("image/"))
+    .map(file => ({
+      name: file.name,
+      url: URL.createObjectURL(file)
+    }));
 };
 
 const createAssignment = async () => {
   try {
     const formData = new FormData();
     formData.append("title", newAssignment.value.title);
-    formData.append("description", newAssignment.value.description);
+    formData.append("content", newAssignment.value.content);
     formData.append("dueDate", newAssignment.value.dueDate);
     formData.append("maxScore", newAssignment.value.maxScore);
     formData.append("classId", classId.value);
     formData.append("teacherId", currentUser.value.id);
-    newAssignment.value.files.forEach((file) => {
+    selectedFiles.value.forEach((file) => {
       formData.append("attachments", file);
     });
 
@@ -173,6 +287,15 @@ const createAssignment = async () => {
     });
 
     toast.success("Tạo bài tập thành công!");
+    newAssignment.value = {
+      title: "",
+      content: "",
+      dueDate: "",
+      maxScore: "",
+      files: [],
+    };
+    selectedFiles.value = []; // reset file
+    document.querySelector('input[type="file"]').value = null;
     showCreatePopup.value = false;
     fetchAssignments(); // cập nhật lại danh sách
   } catch (err) {
@@ -240,7 +363,20 @@ const copyToClipboard = (text) => {
     toast.error("Lỗi khi sao chép!");
   });
 };
+
+
+
 const assignments = ref([]);
+const upcomingAssignments = computed(() => {
+  const now = new Date();
+  return assignments.value.filter(assignment => new Date(assignment.dueDate) >= now);
+});
+
+const pastAssignments = computed(() => {
+  const now = new Date();
+  return assignments.value.filter(assignment => new Date(assignment.dueDate) < now);
+});
+
 
 const fetchAssignments = async () => {
   try {
@@ -250,6 +386,32 @@ const fetchAssignments = async () => {
     console.error("Lỗi khi lấy bài tập:", err);
   }
 };
+
+const isDropdownOpen = ref(false);
+
+const toggleDropdown = (assignmentId) => {
+  isDropdownOpen.value = isDropdownOpen.value === assignmentId ? null : assignmentId;
+};
+
+const editAssignment = (assignment) => {
+  // TODO: mở popup chỉnh sửa
+  console.log("Chỉnh sửa bài tập:", assignment);
+  toast.info("Chức năng chỉnh sửa đang được phát triển...");
+};
+
+const deleteAssignment = async (assignmentId) => {
+  if (confirm("Bạn có chắc chắn muốn xóa bài tập này?")) {
+    try {
+      await axios.delete(`http://localhost:5000/api/assignments/${assignmentId}`);
+      toast.success("Đã xóa bài tập!");
+      fetchAssignments(); // cập nhật danh sách sau khi xóa
+    } catch (error) {
+      console.error("Lỗi khi xóa bài tập:", error);
+      toast.error("Xóa bài tập thất bại!");
+    }
+  }
+};
+
 
 onMounted(() => {
   fetchAssignments(); // gọi khi trang được tải
@@ -585,5 +747,131 @@ onMounted(() => {
   margin-top: 10px;
   margin-bottom: 5px;
 }
+.uploaded-files ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.uploaded-files li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: red;
+  font-size: 14px;
+}
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f1f1;
+  padding: 8px;
+  border-radius: 5px;
+  margin: 5px;
+}
+.file-thumbnail {
+  width: 30px;
+  height: 30px;
+  object-fit: cover;
+}
+.remove-file {
+  background: red !important;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.attachment-image {
+  width: 100px;
+  height: auto;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.attachment-icon {
+  width: 50px;
+  height: auto;
+  margin-right: 5px;
+  margin-top: 5PX;
+}
+.file-upload button {
+  background-color: #77ff22;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.file-upload button:hover {
+  background-color: #6aff00;
+  transform: scale(1.05);
+}
+.add-class-menu {
+  position: relative;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+
+ 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.add-class-menu:hover {
+  background: #a6a6a6;
+}
+
+/* Dropdown dấu cộng */
+.dropdown-menu {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.dropdown-menu button {
+  padding: 10px;
+  text-decoration: none;
+  color: black;
+  background: white;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  text-align: left;
+}
+
+.dropdown-menu button:hover {
+  background: #f1f1f1;
+}
+
 
 </style>

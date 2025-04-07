@@ -32,7 +32,7 @@
         <div class="assignments-list">
           <h2>Bài tập đang diễn ra</h2>
           <div v-if="upcomingAssignments.length === 0">Chưa có bài tập nào đang diễn ra.</div>
-          <div v-else class="assignment-card" v-for="assignment in upcomingAssignments" :key="assignment._id">
+          <div v-else class="assignment-card upcoming-assignment" v-for="assignment in upcomingAssignments" :key="assignment._id">
             <!-- Hiển thị bài tập đang diễn ra -->
             <div class="assignment-header">
               <h3>{{ assignment.title }}</h3>
@@ -52,7 +52,7 @@
                 </div>
               </div>
             </div>
-            <p v-html="assignment.description"></p>
+            <p v-html="assignment.content"></p>
             <div class="assignment-meta">
               <span>Điểm tối đa: {{ assignment.maxScore }}</span>
               <span>Người giao: {{ assignment.teacherId.fullname }}</span>
@@ -62,7 +62,7 @@
 
           <h2>Bài tập đã hết hạn</h2>
           <div v-if="pastAssignments.length === 0">Chưa có bài tập nào đã hết hạn.</div>
-          <div v-else class="assignment-card" v-for="assignment in pastAssignments" :key="assignment._id">
+          <div v-else class="assignment-card past-assignment" v-for="assignment in pastAssignments" :key="assignment._id">
             <!-- Hiển thị bài tập đã hết hạn -->
             <div class="assignment-header">
               <h3>{{ assignment.title }}</h3>
@@ -82,7 +82,7 @@
                 </div>
               </div>
             </div>
-            <p v-html="assignment.description"></p>
+            <p v-html="assignment.content"></p>
             <div class="assignment-meta">
               <span>Điểm tối đa: {{ assignment.maxScore }}</span>
               <span>Người giao: {{ assignment.teacherId.fullname }}</span>
@@ -246,7 +246,7 @@ onMounted(() => {
 
 const newAssignment = ref({
   title: "",
-  description: "",
+  content: "",
   dueDate: "",
   maxScore: "",
   files: [],
@@ -644,7 +644,26 @@ onMounted(() => {
   margin: 0 auto;
   padding: 16px;
 }
+.upcoming-assignment {
+  background-color: #e0ffe0 ; /* Màu nền nhẹ nhàng, xanh lá cây */
+  border: 1px solid #0013e1;
+}
 
+.past-assignment {
+  background-color: #f8d7da !important; /* Màu nền nhạt, đỏ */
+  border: 1px solid #dc3545;
+}
+
+.assignment-card {
+  
+  margin-bottom: 15px;
+  
+  transition: background-color 0.3s ease-in-out;
+}
+
+.assignment-card:hover {
+  transform: scale(1.02);
+}
 .assignment-card {
   background-color: #e8f0fe;
   border-radius: 12px;

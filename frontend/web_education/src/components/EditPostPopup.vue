@@ -161,6 +161,8 @@ const updatePost = async () => {
   border-radius: 8px;
   width: 500px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  max-height: 90vh; /* Giới hạn chiều cao popup */
+  overflow-y: auto;  /* Thêm cuộn dọc nếu nội dung vượt quá */
 }
 
 .popup-actions {

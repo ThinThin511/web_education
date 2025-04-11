@@ -131,7 +131,9 @@ router.put("/:postId", upload.array("files"), async (req, res) => {
 
     // Lấy danh sách file mới nếu có
     const newFiles = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
+      ? req.files.map(
+          (file) => `http://localhost:5000/uploads/${file.filename}`
+        )
       : [];
 
     // Cập nhật bài viết

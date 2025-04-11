@@ -30,6 +30,20 @@ const assignmentSchema = new mongoose.Schema(
     maxScore: Number,
     attachments: [String],
     submissions: [submissionSchema],
+    comments: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        text: String,
+        createdAt: Date,
+        replies: [
+          {
+            userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+            text: String,
+            createdAt: Date,
+          },
+        ],
+      },
+    ],
   },
   { timestamps: true }
 );

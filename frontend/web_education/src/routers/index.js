@@ -11,6 +11,7 @@ import JoinLink from "@/views/JoinLink.vue";
 import JoinTeacher from "@/views/JoinTeacher.vue";
 import { useToast } from "vue-toastification";
 import PostDetail from "@/views/PostDetail.vue";
+import AssignmentDetail from "@/views/AssignmentDetail.vue";
 
 const toast = useToast();
 
@@ -51,6 +52,11 @@ const routes = [
     path: "/post/:postId",
     component: PostDetail,
     meta: { title: "Chi tiết bảng tin" },
+  },
+  {
+    path: "/assignment/:assignmentId",
+    component: AssignmentDetail,
+    meta: { title: "Chi tiết bài tập" },
   },
   {
     path: "/join/:classId",

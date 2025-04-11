@@ -154,6 +154,8 @@ const deleteClass = async () => {
   padding: 20px;
   border-radius: 8px;
   width: 400px;
+  max-height: 90vh; /* Giới hạn chiều cao popup */
+  overflow-y: auto;  /* Thêm cuộn dọc nếu nội dung vượt quá */
 }
 
 .form-group {

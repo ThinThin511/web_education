@@ -4,6 +4,7 @@ const Assignment = require("../models/Assignment");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 // Cấu hình lưu file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/assignments/"),
@@ -16,7 +17,7 @@ router.post("/", upload.array("attachments"), async (req, res) => {
   try {
     const { classId, teacherId, title, content, dueDate, maxScore } = req.body;
     const attachments = req.files.map(
-      (file) => `/uploads/assignments/${file.filename}`
+      (file) => `http://localhost:5000/uploads/assignments/${file.filename}`
     );
 
     const newAssignment = new Assignment({
@@ -199,7 +200,9 @@ router.put("/:assignmentId", upload.array("files"), async (req, res) => {
 
     // Lấy các file mới và thêm vào attachments
     const newFiles = req.files
-      ? req.files.map((file) => `/uploads/assignments/${file.filename}`)
+      ? req.files.map(
+          (file) => `http://localhost:5000/uploads/assignments/${file.filename}`
+        )
       : [];
 
     // Cập nhật dữ liệu bài tập
@@ -219,5 +222,241 @@ router.put("/:assignmentId", upload.array("files"), async (req, res) => {
     res.status(500).json({ error: "Lỗi khi cập nhật bài tập" });
   }
 });
+router.get("/detail/:assignmentId", async (req, res) => {
+  try {
+    const assignmentId = req.params.assignmentId;
+    const assignment = await Assignment.findById(assignmentId).populate(
+      "teacherId",
+      "fullname "
+    );
 
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    res.json(assignment);
+  } catch (error) {
+    console.error("Lỗi khi lấy bài tập:", error);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
+
+// Thêm bình luận
+// Thêm bình luận vào bài tập
+router.post("/:assignmentId/comments", async (req, res) => {
+  try {
+    const { text, userId } = req.body;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: "Bạn cần đăng nhập để bình luận" });
+    }
+
+    if (!text || text.trim() === "") {
+      return res
+        .status(400)
+        .json({ message: "Nội dung bình luận không được để trống" });
+    }
+
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    const newComment = {
+      userId: new mongoose.Types.ObjectId(userId),
+      text,
+      createdAt: new Date(),
+    };
+
+    assignment.comments.push(newComment);
+    await assignment.save();
+
+    const populatedAssignment = await Assignment.findById(
+      req.params.assignmentId
+    ).populate("comments.userId", "fullname avatar");
+
+    const populatedComment =
+      populatedAssignment.comments[populatedAssignment.comments.length - 1];
+    res.status(201).json(populatedComment);
+  } catch (error) {
+    console.error("Lỗi khi thêm bình luận:", error);
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+});
+
+// Lấy danh sách bình luận
+router.get("/:assignmentId/comments", async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.assignmentId)
+      .populate("comments.userId", "fullname avatar")
+      .populate("comments.replies.userId", "fullname avatar");
+
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    res.json(assignment.comments);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error });
+  }
+});
+
+// Thêm phản hồi cho bình luận
+router.post("/:assignmentId/comments/:commentId/replies", async (req, res) => {
+  try {
+    const { text, userId } = req.body;
+    if (!text || !userId) {
+      return res.status(400).json({ message: "Thiếu nội dung hoặc userId" });
+    }
+
+    const assignment = await Assignment.findById(req.params.assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    const comment = assignment.comments.id(req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    comment.replies.push({ userId, text, createdAt: new Date() });
+    await assignment.save();
+    await assignment.populate(
+      "comments.userId comments.replies.userId",
+      "fullname avatar"
+    );
+
+    res.status(201).json(comment.replies);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi server", error: error.message });
+  }
+});
+
+// Xoá bình luận
+router.delete("/:assignmentId/comments/:commentId", async (req, res) => {
+  try {
+    const { assignmentId, commentId } = req.params;
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    const commentIndex = assignment.comments.findIndex(
+      (comment) => comment._id.toString() === commentId
+    );
+    if (commentIndex === -1) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    assignment.comments.splice(commentIndex, 1);
+    await assignment.save();
+
+    res.status(200).json({ message: "Bình luận đã được xóa" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xóa bình luận", error: error.message });
+  }
+});
+
+// Cập nhật bình luận
+router.put("/:assignmentId/comments/:commentId", async (req, res) => {
+  try {
+    const { assignmentId, commentId } = req.params;
+    const { text } = req.body;
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+    }
+
+    const comment = assignment.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ message: "Bình luận không tồn tại" });
+    }
+
+    comment.text = text || comment.text;
+    await assignment.save();
+
+    res.status(200).json({ message: "Bình luận đã được cập nhật", comment });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Lỗi khi cập nhật bình luận", error: error.message });
+  }
+});
+
+// Xoá phản hồi
+router.delete(
+  "/:assignmentId/comments/:commentId/replies/:replyId",
+  async (req, res) => {
+    try {
+      const { assignmentId, commentId, replyId } = req.params;
+
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        return res.status(404).json({ message: "Bài tập không tồn tại" });
+      }
+
+      const comment = assignment.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({ message: "Bình luận không tồn tại" });
+      }
+
+      const replyIndex = comment.replies.findIndex(
+        (reply) => reply._id.toString() === replyId
+      );
+      if (replyIndex === -1) {
+        return res.status(404).json({ message: "Phản hồi không tồn tại" });
+      }
+
+      comment.replies.splice(replyIndex, 1);
+      await assignment.save();
+
+      res.status(200).json({ message: "Phản hồi đã được xóa" });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Lỗi khi xóa phản hồi", error: error.message });
+    }
+  }
+);
+
+// Cập nhật phản hồi
+router.put(
+  "/:assignmentId/comments/:commentId/replies/:replyId",
+  async (req, res) => {
+    try {
+      const { assignmentId, commentId, replyId } = req.params;
+      const { text } = req.body;
+
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment) {
+        return res.status(404).json({ message: "Bài tập không tồn tại" });
+      }
+
+      const comment = assignment.comments.id(commentId);
+      if (!comment) {
+        return res.status(404).json({ message: "Bình luận không tồn tại" });
+      }
+
+      const reply = comment.replies.id(replyId);
+      if (!reply) {
+        return res.status(404).json({ message: "Phản hồi không tồn tại" });
+      }
+
+      reply.text = text || reply.text;
+      await assignment.save();
+
+      res.status(200).json({ message: "Phản hồi đã được cập nhật", reply });
+    } catch (error) {
+      res
+        .status(500)
+        .json({ message: "Lỗi khi cập nhật phản hồi", error: error.message });
+    }
+  }
+);
 module.exports = router;

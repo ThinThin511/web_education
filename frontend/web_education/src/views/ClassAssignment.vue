@@ -57,7 +57,7 @@
               <span>Điểm tối đa: {{ assignment.maxScore }}</span>
               <span>Người giao: {{ assignment.teacherId.fullname }}</span>
             </div>
-            <router-link :to="`/assignments/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
+            <router-link :to="`/assignment/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
           </div>
 
           <h2>Bài tập đã hết hạn</h2>
@@ -87,7 +87,7 @@
               <span>Điểm tối đa: {{ assignment.maxScore }}</span>
               <span>Người giao: {{ assignment.teacherId.fullname }}</span>
             </div>
-            <router-link :to="`/assignments/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
+            <router-link :to="`/assignment/${assignment._id}`" class="view-detail">Xem chi tiết</router-link>
           </div>
         </div>
 

@@ -16,7 +16,7 @@
                     (Đã chỉnh sửa {{ formatDate(assignment.updatedAt) }})
                 </span>
                 </div>
-                <p v-html="assignment.content"></p>
+                <p v-html="assignment?.content"></p>
                 <div class="bottom-meta">
                 <span class="score">{{ assignment?.maxScore }} điểm</span>
                 </div>
@@ -251,6 +251,18 @@ const fetchAssignment = async () => {
     console.log("Dữ liệu bài viết:", assignment.value); 
   } catch (error) {
     console.error("Lỗi khi tải bài viết:", error);
+  }
+};
+const deleteAssignment = async (assignmentId) => {
+  if (confirm("Bạn có chắc chắn muốn xóa bài tập này?")) {
+    try {
+      await axios.delete(`http://localhost:5000/api/assignments/${assignmentId}`);
+      toast.success("Đã xóa bài tập!");
+      fetchAssignments(); // cập nhật danh sách sau khi xóa
+    } catch (error) {
+      console.error("Lỗi khi xóa bài tập:", error);
+      toast.error("Xóa bài tập thất bại!");
+    }
   }
 };
 const fetchComments = async () => {

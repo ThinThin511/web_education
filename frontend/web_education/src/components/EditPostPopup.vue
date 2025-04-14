@@ -188,7 +188,7 @@ const updatePost = async () => {
 }
 
 .remove-file {
-  background: red;
+  background: red !important;
   color: white;
   border: none;
   padding: 2px 5px;

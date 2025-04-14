@@ -48,7 +48,7 @@ watch(() => route.params.id, fetchClassName, { immediate: true });
   display: flex;
   justify-content: space-between;
   padding: 15px;
-  background: white;
+  background: rgb(183, 255, 249);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 </style>

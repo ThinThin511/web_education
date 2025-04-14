@@ -9,13 +9,13 @@
         <i class="fas fa-home"></i> <span>Trang chủ</span>
       </router-link>
       <router-link to="/" class="menu-item">
-        <i class="fas fa-calendar"></i> <span>Lịch</span>
+        <i class="fas fa-calendar"></i> <span>Giảng dạy</span>
       </router-link>
       <router-link to="/" class="menu-item">
-        <i class="fas fa-folder"></i> <span>Tài liệu</span>
+        <i class="fa fa-clock"></i> <span>Lời nhắc</span>
       </router-link>
       <router-link to="/" class="menu-item">
-        <i class="fas fa-cog"></i> <span>Cài đặt</span>
+        <i class="fas fa-book"></i> <span>Bài kiểm tra</span>
       </router-link>
     </nav>
   </aside>
@@ -25,12 +25,13 @@
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: #ffffff;
+  background: #e6e6e6;
   border-right: 1px solid #ddd;
   padding: 20px;
   display: flex;
   flex-direction: column;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  
 }
 
 .logo {
@@ -42,6 +43,7 @@
   gap: 10px;
   padding-bottom: 20px;
   border-bottom: 2px solid #eee;
+  
 }
 
 .logo img {

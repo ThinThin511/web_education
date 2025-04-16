@@ -111,7 +111,7 @@ const getFileIcon = (file) => {
 
 const getFileName = (file) => {
   if (typeof file === "string") {
-    return file.split("/").pop();
+    return file.split("/").pop().substring(14);
   } else if (file instanceof File) {
     return file.name;
   }

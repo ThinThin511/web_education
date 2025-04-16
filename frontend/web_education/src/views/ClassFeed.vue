@@ -111,7 +111,7 @@
                       <template v-else>
                         <a :href="file" target="_blank" style=" flex: 1;text-decoration: none;color: black;overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 90%; ">
                           <img :src="getFileIcon(file)" class="attachment-icon" />
-                          {{ file.split("/").pop() }}
+                          {{ file.split("/").pop().substring(14) }}
                         </a>
                       </template>
                     </li>

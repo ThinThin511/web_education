@@ -101,7 +101,7 @@ const getFileIcon = (file) => {
 
 const getFileName = (file) => {
   if (typeof file === "string") {
-    return file.split("/").pop(); // Nếu là chuỗi (URL), lấy tên file
+    return file.split("/").pop().substring(14); // Nếu là chuỗi (URL), lấy tên file
   } else if (file instanceof File) {
     return file.name; // Nếu là File object, lấy tên file
   }

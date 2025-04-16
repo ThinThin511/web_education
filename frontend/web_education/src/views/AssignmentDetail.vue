@@ -217,7 +217,7 @@ const formatDate = (date) => {
   });
 };
 const getFileName = (file) => {
-  return file.split("/").pop();
+  return file.split("/").pop().substring(14);
 };
 
 const getFileType = (file) => {

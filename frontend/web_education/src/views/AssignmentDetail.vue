@@ -20,7 +20,14 @@
                 </div>
                 <p v-html="assignment?.content"></p>
                 <div class="bottom-meta">
-                  <span class="score">{{ assignment?.maxScore }} điểm</span>
+                  <template v-if="!isTeacher">
+                    <span class="score">
+                      {{ mySubmission?.score !== undefined ? mySubmission.score : '__' }}/{{ assignment?.maxScore }} điểm
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span class="score">{{ assignment?.maxScore }} điểm</span>
+                  </template>
                 </div>
             </div>
 
@@ -129,6 +136,63 @@
 
         </div>
         </div>
+        <div v-if="isTeacher" class="submission-table">
+          <div class="table-header">
+            <h3 v-if="submissions.length>0" class="table-title">Danh sách nộp bài</h3>
+            <div class="submission-stats">
+              <div class="tooltip-wrapper">
+                <span>Đã nộp: {{ submissions.length }}</span>
+                <div class="tooltip">
+                  
+                  <p v-for="s in submittedStudents" :key="s._id"><img :src="s?.avatar || defaultAvatar" class="avatar" />{{ s.fullname }}</p>
+                </div>
+              </div>
+
+              <div class="tooltip-wrapper">
+                <span>Chưa nộp: {{ students.length - submissions.length }}</span>
+                <div class="tooltip">
+                  <p v-for="s in notSubmittedStudents" :key="s._id"><img :src="s?.avatar || defaultAvatar" class="avatar" />{{ s.fullname }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <table v-if="submissions.length>0">
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Họ tên</th>
+                <th>Chấm điểm</th>
+                <th>Điểm tối đa</th>
+                <th>Bài nộp</th>
+                <th>Thời gian nộp</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(submission, index) in submissions" :key="submission._id">
+                <td>{{ index + 1 }}</td>
+                <td>{{ submission.fullname }}</td>
+                <td>
+                  <input type="number" v-model="submission.score" class="score-input" />
+                </td>
+                <td>{{ submission.maxScore }}</td>
+                <td>
+                  <div v-for="(file, idx) in submission.files" :key="idx">
+                    <a :href="file" target="_blank" class="attachment-link" style=" flex: 1;text-decoration: none;color: black;overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; max-width: 90%; ">
+                    <img :src="getFileIcon(file)" class="attachment-icon" />
+                    {{ file.split("/").pop().substring(14) }}
+                  </a>
+                  </div>
+                </td>
+                <td>{{new Date(submission?.submittedAt).toLocaleString() }}</td>
+                <td>
+                  <button class="save-button" @click="saveScore(submission)">Lưu</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div class="comment-input">
           <input v-model="newComment" placeholder="Thêm nhận xét trong lớp học..." />
           <button @click="addComment">Gửi</button>
@@ -510,6 +574,15 @@ const fetchMySubmission = async () => {
 
 const deleteSubmission = async () => {
   if (!confirm("Bạn có chắc chắn muốn xóa bài đã nộp?")) return;
+  const now = new Date();
+  if (new Date(assignment.value.dueDate) < now) {
+    toast.error("Bài tập đã hết hạn!");
+    return;
+  }
+  if (mySubmission.value?.score != null) {
+    toast.error("Giáo viên đã chấm điểm bài tập này!");
+    return;
+  }
 
   try {
     await axios.delete(`http://localhost:5000/api/assignments/${route.params.assignmentId}/submission/${currentUser.value.id}`);
@@ -520,12 +593,45 @@ const deleteSubmission = async () => {
     toast.error("Không thể xóa bài");
   }
 };
+const submissions = ref([]);
+const fetchSubmissions= async () => {
+  try {
+    const response = await axios.get(`http://localhost:5000/api/assignments/${route.params.assignmentId}/submissions`);
+    console.log("Response:", response);
+    submissions.value = response.data.submissions;
+    console.log("Dữ liệu :", submissions.value);
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách nộp bài:", error);
+  }
+}
+const saveScore = async (submission) => {
+  try {
+    const response = await axios.patch(
+      `http://localhost:5000/api/assignments/${route.params.assignmentId}/submissions/${submission.id}`,
+      { score: submission.score }
+    );
+    console.log("Cập nhật điểm thành công:", response.data);
+    toast.success("Đã cập nhật điểm số");
+  } catch (error) {
+    console.error("Lỗi cập nhật điểm:", error);
+  }
+};
+const notSubmittedStudents = computed(() => {
+  const submittedIds = submissions.value.map(s => s.studentId?._id);
+  return students.value.filter(s => submittedIds.includes(s._id));
+});
+
+const submittedStudents = computed(() => {
+  const submittedIds = submissions.value.map(s => s.studentId?._id);
+  return students.value.filter(s => !submittedIds.includes(s._id));
+});
 
 onMounted(()=>{
   fetchAssignment();
   fetchComments();
   fetchClassPeople();
   fetchMySubmission();
+  fetchSubmissions();
 });
 </script>
 <style scoped>
@@ -997,8 +1103,9 @@ onMounted(()=>{
 .avatar {
   width: 50px;
   height: 50px;
+  margin-right: 10px;
   border-radius: 50%;
-  border: 2px solid #00ff3c; /* Viền avatar giúp nổi bật hơn */
+  border: 2px solid #000000; /* Viền avatar giúp nổi bật hơn */
 }
 .assignment-right {
   max-width: 400px;
@@ -1168,10 +1275,151 @@ onMounted(()=>{
   padding-left: 8px;
   position: relative;
 }
-
 .selected-files li::before {
   content: '📎';
   position: absolute;
   left: 0;
 }
+/* Container bảng */
+.submission-table {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 80%;
+  font-family: Arial, sans-serif;
+  max-height: 90vh; 
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+/* Tiêu đề bảng */
+.table-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
+  border-bottom: 2px solid #1a73e8;
+  padding-bottom: 8px;
+}
+
+/* Bảng chung */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Header của bảng */
+thead {
+  background-color: #1a73e8;
+  color: #fff;
+}
+
+thead th {
+  padding: 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Body bảng */
+tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+td {
+  padding: 12px;
+  font-size: 14px;
+  color: #333;
+  vertical-align: middle;
+}
+
+/* Input chấm điểm */
+.score-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+
+
+/* Nút lưu riêng cho bảng */
+.save-button {
+  background-color: #1a73e8;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease;
+}
+
+.save-button:hover {
+  background-color: #1765cc;
+}
+
+.attachment-icon {
+  width: 20px;
+  height: auto;
+  margin-right: 5px;
+  margin-top: 5PX;
+}
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.submission-stats span {
+  margin-left: 16px;
+  font-size: 22px;
+  color: #333;
+}
+
+.submission-stats {
+  display: flex;
+  gap: 20px;
+  font-weight: 500;
+}
+.tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-right: 16px;
+  cursor: pointer;
+}
+
+.tooltip-wrapper .tooltip {
+  visibility: hidden;
+  opacity: 0;
+  background-color: #fff;
+  color: #333;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  position: absolute;
+  z-index: 1;
+  top: 120%;
+  left: 0;
+  min-width: 200px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  transition: opacity 0.3s ease;
+  overflow-y: auto;
+  max-height: 25vh;
+}
+
+.tooltip-wrapper:hover .tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
 </style>

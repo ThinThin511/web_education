@@ -50,38 +50,42 @@ router.get("/class/:classId", async (req, res) => {
 });
 
 // Lấy danh sách bài nộp của một bài tập
-router.get("/:assignmentId/submissions", async (req, res) => {
-  try {
-    const assignment = await Assignment.findById(
-      req.params.assignmentId
-    ).populate("submissions.studentId");
-    res.json(assignment.submissions);
-  } catch (err) {
-    res.status(500).json({ error: "Không thể lấy bài nộp." });
-  }
-});
+// router.get("/:assignmentId/submissions", async (req, res) => {
+//   try {
+//     const assignment = await Assignment.findById(
+//       req.params.assignmentId
+//     ).populate("submissions.studentId");
+//     res.json(assignment.submissions);
+//   } catch (err) {
+//     res.status(500).json({ error: "Không thể lấy bài nộp." });
+//   }
+// });
 // Giáo viên chấm điểm bài nộp
-router.put("/:assignmentId/grade/:studentId", async (req, res) => {
+router.patch("/:assignmentId/submissions/:submissionId", async (req, res) => {
   try {
+    const { assignmentId, submissionId } = req.params;
     const { score } = req.body;
 
-    const assignment = await Assignment.findById(req.params.assignmentId);
-    if (!assignment)
-      return res.status(404).json({ error: "Không tìm thấy bài tập." });
-
-    const submission = assignment.submissions.find(
-      (s) => s.studentId.toString() === req.params.studentId
+    // Sử dụng update operator để cập nhật trường score cho submission có _id tương ứng
+    const assignment = await Assignment.findOneAndUpdate(
+      { _id: assignmentId, "submissions._id": submissionId },
+      { $set: { "submissions.$.score": score } },
+      { new: true } // trả về document mới sau khi update
     );
 
-    if (!submission)
-      return res.status(404).json({ error: "Không tìm thấy bài nộp." });
+    if (!assignment) {
+      return res
+        .status(404)
+        .json({ message: "Assignment hoặc submission không tồn tại" });
+    }
 
-    submission.score = score;
-    await assignment.save();
-
-    res.json({ message: "Chấm điểm thành công.", submission });
-  } catch (err) {
-    res.status(500).json({ error: "Lỗi khi chấm điểm." });
+    return res.json({
+      message: "Cập nhật điểm thành công",
+      assignment,
+    });
+  } catch (error) {
+    console.error("Lỗi cập nhật điểm:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 router.delete("/:assignmentId", async (req, res) => {
@@ -552,6 +556,37 @@ router.get("/:assignmentId/submission/:studentId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Lỗi server khi lấy bài nộp" });
+  }
+});
+router.get("/:id/submissions", async (req, res) => {
+  try {
+    const assignmentId = req.params.id;
+
+    // Tìm assignment + populate tên học sinh trong từng submission
+    const assignment = await Assignment.findById(assignmentId).populate(
+      "submissions.studentId",
+      "fullname"
+    ); // Chỉ lấy các trường cần
+
+    if (!assignment) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    // Chuẩn bị dữ liệu trả về
+    const submissions = assignment.submissions.map((submission) => ({
+      id: submission._id,
+      fullname: submission.studentId?.fullname || "Không rõ",
+
+      score: submission.score || null,
+      maxScore: assignment.maxScore || 10,
+      files: submission.files,
+      submittedAt: submission.submittedAt,
+    }));
+
+    return res.json({ submissions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
   }
 });
 

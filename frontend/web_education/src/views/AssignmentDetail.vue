@@ -4,43 +4,46 @@
     <main class="main-content">
       <Topbar />
       <section class="content">
+        <div class="assignment-layout">
+        <div class="assignment-left">
         <div class="assignment-header">
             <div class="header-left">
                 <h1 class="title">{{ assignment?.title }}</h1>
                 <div class="subtitle">
-                <span>{{ assignment?.teacherId?.fullname }}</span>
-                
-                <span class="dot">•</span>
-                <span>{{ formatDate(assignment?.createdAt) }}</span>
-                <span v-if="assignment?.updatedAt && assignment?.updatedAt !== assignment?.createdAt">
-                    (Đã chỉnh sửa {{ formatDate(assignment.updatedAt) }})
-                </span>
+                  <span>{{ assignment?.teacherId?.fullname }}</span>
+                  
+                  <span class="dot">•</span>
+                  <span>{{ formatDate(assignment?.createdAt) }}</span>
+                  <span v-if="assignment?.updatedAt && assignment?.updatedAt !== assignment?.createdAt">
+                      (Đã chỉnh sửa {{ formatDate(assignment.updatedAt) }})
+                  </span>
                 </div>
                 <p v-html="assignment?.content"></p>
                 <div class="bottom-meta">
-                <span class="score">{{ assignment?.maxScore }} điểm</span>
+                  <span class="score">{{ assignment?.maxScore }} điểm</span>
                 </div>
             </div>
 
             <div class="header-right" >
                 
-                <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(assignment._id)">
-                    <i class="fas fa-ellipsis-v"></i>
-                    <div v-if="isDropdownOpen === assignment._id" class="dropdown-menu">
-                        <button @click="openEditPopup(assignment)">Chỉnh sửa bài tập</button>
-                        <EditAssignmentPopup
-                        v-if="isEditPopupOpen && selectedAssignment"
-                        :isOpen="isEditPopupOpen"
-                        :assignment="selectedAssignment"
-                        @close="() => { isEditPopupOpen = false }"
-                        @updated="fetchAssignment"
-                        />
-                        <button @click="deleteAssignment(assignment._id)">Xóa bài tập</button>
-                    </div>
+              <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(assignment._id)">
+                <i class="fas fa-ellipsis-v"></i>
+                <div v-if="isDropdownOpen === assignment._id" class="dropdown-menu">
+                    <button @click="openEditPopup(assignment)">Chỉnh sửa bài tập</button>
+                    <EditAssignmentPopup
+                    v-if="isEditPopupOpen && selectedAssignment"
+                    :isOpen="isEditPopupOpen"
+                    :assignment="selectedAssignment"
+                    @close="() => { isEditPopupOpen = false }"
+                    @updated="fetchAssignment"
+                    />
+                    <button @click="deleteAssignment(assignment._id)">Xóa bài tập</button>
                 </div>
-                <div> .</div>
-                <div> .</div>
-                <span class="due-date">Đến hạn {{ new Date(assignment?.dueDate).toLocaleString() }}</span>
+              </div>
+              <div v-if="!isTeacher"> .</div>
+              <div> .</div>
+              <div> .</div>
+              <span class="due-date">Đến hạn {{ new Date(assignment?.dueDate).toLocaleString() }}</span>
             </div>
         </div>
         <!-- Tệp đính kèm -->
@@ -65,6 +68,66 @@
                 <div class="file-type">{{ getFileType(file) }}</div>
                 </div>
             </div>
+        </div>
+        </div>
+        <!-- Bên phải: Phần nộp bài -->
+        <div v-if="!isTeacher" class="assignment-right">
+          <h3 class="text-xl font-semibold mb-4">Bài tập của bạn</h3>
+
+          <!-- Đã nộp -->
+          <div v-if="mySubmission" >
+            
+            <p class="text-green-600 font-medium mb-2">Bạn đã nộp bài</p>
+            <div class="attached-files">
+            <div class="file-list">
+                <div
+                v-for="(file, index) in mySubmission.files"
+                :key="index"
+                class="file-card"
+                >
+                <!-- Hiện icon file -->
+                <img
+                    :src="getFileIcon(file)"
+                    alt="icon"
+                    class="file-icon"
+                />
+                <!-- Tên file -->
+                <a :href="file" target="_blank" class="file-name">
+                    {{ getFileName(file) }}
+                </a>
+                <div class="file-type">{{ getFileType(file) }}</div>
+                </div>
+            </div>
+            </div>
+            <button
+              class="button_re"
+              @click="deleteSubmission"
+            >
+              Hủy nộp bài
+            </button>
+          </div>
+
+          <!-- Chưa nộp -->
+         <div v-else class="submission-box">
+          <div class="file-upload-box">
+            <label for="fileInput" class="upload-label">
+              <span class="upload-icon">＋</span>
+              Thêm bài làm
+            </label>
+            <input id="fileInput" type="file" multiple @change="handleFileChange" style="display: none;" />
+          </div>
+          <!-- Hiển thị tên file đã chọn -->
+          <ul class="selected-files" v-if="selectedFiles.length">
+            <li v-for="(file, index) in selectedFiles" :key="index">
+              {{ file.name }}
+            </li>
+          </ul>
+          <button class="button_sub" @click="uploadSubmission">
+            Nộp bài
+          </button>
+        </div>
+
+        </div>
         </div>
         <div class="comment-input">
           <input v-model="newComment" placeholder="Thêm nhận xét trong lớp học..." />
@@ -144,18 +207,13 @@
           </div>
           <p v-else>Chưa có nhận xét nào.</p>
         </div>
-
-
-            
-          
-
       </section>
     </main>
   </div>
 </template>
 <script setup>
 import { ref, onMounted,computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter} from "vue-router";
 import Sidebar from "@/components/Sidebar.vue";
 import Topbar from "@/components/Topbar.vue";
 import { useAuthStore } from "@/stores/auth";
@@ -174,13 +232,35 @@ import EditAssignmentPopup from "@/components/EditAssignmentPopup.vue";
 const authStore = useAuthStore();
 const currentUser = ref(authStore.user); // Lưu thông tin người dùng hiện tại
 const user = currentUser.value.id;
+const teachers = ref([]);
+const students = ref([]);
+const classroom = ref(null);
+const classId = ref(localStorage.getItem("classId") || route.params.id);
+const fetchClassPeople = async () => {
+  try {
+    
+    const response = await axios.get(`http://localhost:5000/api/classes/${classId.value}/people`);
+    teachers.value = response.data.teachers;
+    students.value = response.data.students;
+    classroom.value = response.data.classroom;
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách thành viên:", error);
+  }
+};
 const isTeacher = computed(() => {
-   return assignment.value?.teacherId?._id === currentUser.value.id;
- });
+  return teachers.value.some(teacher => teacher._id === currentUser.value.id);
+});
 const route = useRoute();
 const assignment = ref(null);
 const comments = ref([]);
 const newComment = ref("");
+// Khai báo state
+const selectedFiles = ref([]);
+
+// Xử lý khi chọn file
+function handleFileChange(event) {
+  selectedFiles.value = Array.from(event.target.files);
+}
 
 const isDropdownOpen = ref(false);
 const isEditPopupOpen = ref(false);
@@ -253,12 +333,13 @@ const fetchAssignment = async () => {
     console.error("Lỗi khi tải bài viết:", error);
   }
 };
+const router = useRouter();
 const deleteAssignment = async (assignmentId) => {
   if (confirm("Bạn có chắc chắn muốn xóa bài tập này?")) {
     try {
       await axios.delete(`http://localhost:5000/api/assignments/${assignmentId}`);
       toast.success("Đã xóa bài tập!");
-      fetchAssignments(); // cập nhật danh sách sau khi xóa
+      await router.push(`/class/${classId.value}/assignments`);
     } catch (error) {
       console.error("Lỗi khi xóa bài tập:", error);
       toast.error("Xóa bài tập thất bại!");
@@ -359,9 +440,92 @@ const saveEditReply = async (commentId) => {
   await fetchComments()
   toast.success("Đã cập nhật câu trả lời");
 }
+//nộp bài
+const submissionFiles = ref([]);
+
+
+
+const uploadSubmission = async () => {
+  const now = new Date();
+  if (new Date(assignment.value.dueDate) < now) {
+    toast.error("Bài tập đã hết hạn!");
+    return;
+  }
+  if (mySubmission.value?.score != null) {
+    toast.error("Giáo viên đã chấm điểm bài tập này!");
+    return;
+  }
+  if (selectedFiles.value.length === 0) {
+    toast.error("Vui lòng chọn tệp để nộp");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("userId", currentUser.value.id);
+
+    selectedFiles.value.forEach((file) => {
+      formData.append("files", file);
+    });
+
+    await axios.post(
+      `http://localhost:5000/api/assignments/${route.params.assignmentId}/submit`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    toast.success("Đã nộp bài thành công!");
+    selectedFiles.value = []; // reset lại file sau khi nộp
+    document.querySelector('input[type="file"]').value = null;
+    await fetchAssignment();
+    await fetchMySubmission();
+  } catch (error) {
+    console.error("❌ Lỗi khi nộp bài:", error.response?.data || error);
+    toast.error("Nộp bài thất bại!");
+  }
+};
+
+const mySubmission = ref(null);
+
+const fetchMySubmission = async () => {
+  try {
+    const res = await axios.get(`http://localhost:5000/api/assignments/${route.params.assignmentId}/submission/${currentUser.value.id}`);
+    mySubmission.value = res.data;
+  } catch (err) {
+    const errorCode = err.response?.data?.code;
+
+    if (errorCode === 'SUBMISSION_NOT_FOUND') {
+      mySubmission.value = null;
+    } else {
+      console.error("Lỗi khi lấy bài nộp:", err);
+      // Có thể show toast: bài tập không tồn tại hoặc lỗi hệ thống
+    }
+  }
+};
+
+
+const deleteSubmission = async () => {
+  if (!confirm("Bạn có chắc chắn muốn xóa bài đã nộp?")) return;
+
+  try {
+    await axios.delete(`http://localhost:5000/api/assignments/${route.params.assignmentId}/submission/${currentUser.value.id}`);
+    toast.success("Đã xóa bài nộp");
+    await fetchMySubmission();
+  } catch (err) {
+    console.error("Lỗi khi xóa bài nộp:", err);
+    toast.error("Không thể xóa bài");
+  }
+};
+
 onMounted(()=>{
   fetchAssignment();
   fetchComments();
+  fetchClassPeople();
+  fetchMySubmission();
 });
 </script>
 <style scoped>
@@ -381,7 +545,7 @@ onMounted(()=>{
   display: flex;
   flex-direction: column; /* Xếp nội dung theo chiều dọc */
   align-items: center; /* Căn giữa nội dung */
-  
+  max-width: 90%;
   padding: 20px;
 }
 .add-class-menu {
@@ -444,6 +608,29 @@ onMounted(()=>{
 .header-left {
   flex: 1;
 }
+.assignment-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 50px; /* khoảng cách giữa 2 bên */
+  margin-bottom: 20px;
+
+}
+
+.assignment-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.assignment-right {
+  width: 300px; /* hoặc 350px, 400px tùy bạn muốn rộng bao nhiêu */
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
 .title {
   font-size: 24px;
@@ -490,10 +677,11 @@ onMounted(()=>{
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 3px solid #e0e0e0;
   padding-bottom: 10px;
   max-width: 80%;
   margin-bottom: 20px;
+  margin: 0 auto;
 }
 
 .attached-files h4 {
@@ -506,10 +694,11 @@ onMounted(()=>{
   display: flex;
   flex-wrap: wrap; /* Cho phép tự xuống dòng khi hết chỗ */
   gap: 16px;
+  
 }
 
 .attached-files .file-card {
-  width: 220px;
+  width: 80%;
   border: 1px solid #dadce0;
   border-radius: 12px;
   background-color: white;
@@ -549,7 +738,7 @@ onMounted(()=>{
   margin-top: 4px;
 }
 
-.attached-files .file-card {
+/* .attached-files .file-card {
   width: 200px;
   height: 120px;
   border: 1px solid #dadce0;
@@ -567,7 +756,7 @@ onMounted(()=>{
 
 .attached-files .file-card:hover {
   box-shadow: 0 2px 8px rgba(60, 64, 67, 0.2);
-}
+} */
 
 .attached-files .file-thumbnail {
   width: 100%;
@@ -810,5 +999,179 @@ onMounted(()=>{
   height: 50px;
   border-radius: 50%;
   border: 2px solid #00ff3c; /* Viền avatar giúp nổi bật hơn */
+}
+.assignment-right {
+  max-width: 400px;
+  padding: 16px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.assignment-right h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.submitted-box {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.submitted-box img {
+  width: 40px;
+  height: auto;
+  border-radius: 4px;
+}
+
+.submitted-box a {
+  font-weight: 500;
+  color: #202124;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submitted-box a:hover {
+  text-decoration: underline;
+}
+
+.text-green-600 {
+  color: #16a34a; /* tương đương tailwind */
+  font-weight: 500;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+/* Danh sách file đính kèm */
+.attached-files {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Chứa các file */
+.file-list {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.assignment-right .button_re {
+  background-color: #ffffff;
+  
+  color: red !important;
+  border: 1px solid red;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 16px;
+  width: 60%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto; /* canh giữa */
+  text-align: center;
+}
+
+.assignment-right .button_re:hover {
+  background-color: #fc0000;
+  color: white !important;
+}
+.submission-box {
+  width: 300px;
+  background-color: white;
+  
+ 
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Hộp "Thêm hoặc tạo" */
+.file-upload-box {
+  width: 100%;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.file-upload-box:hover {
+  background-color: #f8f9fa;
+}
+
+.upload-label {
+  font-weight: 500;
+  color: #1a73e8;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.upload-icon {
+  font-size: 20px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Nút nộp bài */
+.button_sub {
+  background-color: #1a73e8 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s ease;
+  text-align: center;
+}
+
+.button_sub:hover {
+  background-color: #1765cc !important;
+}
+.selected-files {
+  list-style-type: none;
+  padding: 0;
+  margin-bottom: 16px;
+
+  font-size: 14px;
+  color: #333;
+  text-align: left;
+  white-space: nowrap;        /* Không xuống dòng */
+  overflow: hidden;           /* Ẩn phần tràn */
+  text-overflow: ellipsis;    /* Thêm dấu "..." */
+  max-width: 100%;
+}
+
+.selected-files li {
+  white-space: nowrap;        /* Không xuống dòng */
+  overflow: hidden;           /* Ẩn phần tràn */
+  text-overflow: ellipsis;    /* Thêm dấu "..." */
+  max-width: 80%;
+  margin-bottom: 4px;
+  padding-left: 8px;
+  position: relative;
+}
+
+.selected-files li::before {
+  content: '📎';
+  position: absolute;
+  left: 0;
 }
 </style>

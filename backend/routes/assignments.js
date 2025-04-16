@@ -49,41 +49,6 @@ router.get("/class/:classId", async (req, res) => {
   }
 });
 
-// Học sinh nộp bài
-router.post(
-  "/:assignmentId/submit",
-  upload.array("files"),
-  async (req, res) => {
-    try {
-      const { studentId, content } = req.body;
-      const files = req.files.map(
-        (file) => `/uploads/assignments/${file.filename}`
-      );
-
-      const assignment = await Assignment.findById(req.params.assignmentId);
-      if (!assignment)
-        return res.status(404).json({ error: "Không tìm thấy bài tập." });
-
-      // Thêm hoặc cập nhật bài nộp
-      const existing = assignment.submissions.find(
-        (s) => s.studentId.toString() === studentId
-      );
-      if (existing) {
-        existing.submittedAt = new Date();
-        existing.content = content;
-        existing.files = files;
-      } else {
-        assignment.submissions.push({ studentId, content, files });
-      }
-
-      await assignment.save();
-      res.json({ message: "Nộp bài thành công." });
-    } catch (err) {
-      res.status(500).json({ error: "Nộp bài thất bại." });
-    }
-  }
-);
-
 // Lấy danh sách bài nộp của một bài tập
 router.get("/:assignmentId/submissions", async (req, res) => {
   try {
@@ -459,4 +424,135 @@ router.put(
     }
   }
 );
+// nộp bài
+router.post(
+  "/:assignmentId/submit",
+  upload.array("files"),
+  async (req, res) => {
+    try {
+      const { userId } = req.body;
+      const { assignmentId } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+        return res.status(400).json({ message: "ID bài tập không hợp lệ" });
+      }
+      if (!userId) {
+        return res.status(400).json({ message: "Thiếu userId" });
+      }
+
+      const assignment = await Assignment.findById(assignmentId);
+      if (!assignment)
+        return res.status(404).json({ message: "Bài tập không tồn tại" });
+
+      const submissionData = {
+        studentId: userId,
+        content: "",
+        files: req.files.map(
+          (file) => `http://localhost:5000/uploads/assignments/${file.filename}`
+        ),
+        submittedAt: new Date(),
+      };
+
+      const existing = assignment.submissions.find(
+        (s) => s.studentId?.toString() === userId
+      );
+
+      if (existing) {
+        existing.files = submissionData.files;
+        existing.submittedAt = submissionData.submittedAt;
+      } else {
+        assignment.submissions.push(submissionData);
+      }
+
+      await assignment.save();
+      res.status(200).json({ message: "Nộp bài thành công" });
+    } catch (err) {
+      console.error("❌ Lỗi khi nộp bài:", err);
+      res
+        .status(500)
+        .json({ message: "Lỗi server khi nộp bài", error: err.message });
+    }
+  }
+);
+
+// Hủy nộp bài và xoá file đính kèm
+router.delete("/:assignmentId/submission/:studentId", async (req, res) => {
+  try {
+    const { assignmentId, studentId } = req.params;
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment)
+      return res.status(404).json({ message: "Bài tập không tồn tại" });
+
+    const submissionIndex = assignment.submissions.findIndex(
+      (s) => s.studentId.toString() === studentId
+    );
+
+    if (submissionIndex === -1)
+      return res.status(404).json({ message: "Bài nộp không tồn tại" });
+
+    const submission = assignment.submissions[submissionIndex];
+    const files = submission.files || [];
+
+    // Xoá từng file vật lý trong thư mục uploads/assignments
+    for (const filePath of files) {
+      const filename = filePath.split("/uploads/assignments/")[1];
+      if (filename) {
+        const fullPath = path.join(
+          __dirname,
+          "../uploads/assignments",
+          filename
+        );
+        if (fs.existsSync(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+            console.log(`Đã xoá file: ${fullPath}`);
+          } catch (err) {
+            console.error(`Không thể xoá file ${fullPath}:`, err);
+          }
+        }
+      }
+    }
+
+    // Xoá bài nộp khỏi danh sách submissions
+    assignment.submissions.splice(submissionIndex, 1);
+    await assignment.save();
+
+    res.status(200).json({ message: "Đã hủy nộp bài và xóa file đính kèm" });
+  } catch (error) {
+    console.error("Lỗi khi hủy nộp bài:", error);
+    res.status(500).json({ message: "Lỗi khi hủy nộp bài" });
+  }
+});
+
+// Lấy bài nộp của một sinh viên
+router.get("/:assignmentId/submission/:studentId", async (req, res) => {
+  try {
+    const { assignmentId, studentId } = req.params;
+
+    const assignment = await Assignment.findById(assignmentId);
+    if (!assignment) {
+      return res.status(404).json({
+        message: "Bài tập không tồn tại",
+        code: "ASSIGNMENT_NOT_FOUND",
+      });
+    }
+
+    const submission = assignment.submissions.find(
+      (s) => s.studentId.toString() === studentId
+    );
+    if (!submission) {
+      return res.status(404).json({
+        message: "Sinh viên chưa nộp bài",
+        code: "SUBMISSION_NOT_FOUND",
+      });
+    }
+
+    res.status(200).json(submission);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server khi lấy bài nộp" });
+  }
+});
+
 module.exports = router;

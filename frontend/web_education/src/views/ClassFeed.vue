@@ -81,7 +81,7 @@
                     <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
                     <div class="post-info">
                       <p class="author-name">{{ post.authorId?.fullname }}</p>
-                      <p class="post-time">{{ new Date(post.createdAt).toLocaleString() }}</p>
+                      <p class="post-time">{{ formatTimeAgo(post.createdAt) }}</p>
                     </div>
                   </div>
                   <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(post._id)">
@@ -360,7 +360,17 @@ const deletePost = async (postId) => {
     toast.error("Đã có lỗi xảy ra khi xóa bài viết!");
   }
 };
+const formatTimeAgo = (date) => {
+  const d = new Date(date);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000); // seconds
 
+  if (diff < 60) return "Vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
+  return d.toLocaleDateString();
+};
 
 
 

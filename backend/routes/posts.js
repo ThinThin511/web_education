@@ -5,6 +5,10 @@ const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
+const Notification = require("../models/Notification");
+const User = require("../models/User");
+const Classroom = require("../models/Class");
+const { type } = require("os");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -49,6 +53,32 @@ router.post("/", upload.array("files", 5), async (req, res) => {
     });
 
     await newPost.save();
+
+    const classroom = await Classroom.findById(classId).populate(
+      "teachers students",
+      "fullname"
+    );
+
+    const allMembers = [...classroom.teachers, ...classroom.students];
+    const recipients = allMembers.filter(
+      (member) => String(member._id) !== String(authorId)
+    );
+
+    const author = await User.findById(authorId); // Lấy tên người đăng bài
+
+    const notifications = recipients.map((user) => ({
+      userId: user._id,
+      message: `${author.fullname} đã đăng thông báo mới trong lớp ${classroom.name}`,
+      link: `/class/${classId}/feed`,
+      name: author.fullname,
+      type: author.avatar,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    // Tạo hàng loạt thông báo
+    await Notification.insertMany(notifications);
+
     res.status(201).json(newPost);
   } catch (error) {
     res.status(500).json({ error: "Lỗi khi đăng bài" });
@@ -205,6 +235,18 @@ router.post("/:postId/comments", async (req, res) => {
     const populatedComment =
       populatedPost.comments[populatedPost.comments.length - 1];
 
+    if (post.authorId.toString() !== userId) {
+      await Notification.create({
+        userId: post.authorId,
+        message: `💬 ${populatedComment.userId.fullname} đã bình luận vào bài viết của bạn.`,
+        link: `/post/${post._id}`,
+        isRead: false,
+        name: populatedComment.userId.fullname,
+        type: populatedComment.userId.avatar,
+        createdAt: new Date(),
+      });
+    }
+
     res.status(201).json(populatedComment);
   } catch (error) {
     console.error("Lỗi khi thêm bình luận:", error);
@@ -257,6 +299,20 @@ router.post("/:postId/comments/:commentId/replies", async (req, res) => {
       "comments.userId comments.replies.userId",
       "fullname avatar"
     );
+
+    if (String(userId) !== String(comment.userId)) {
+      const replier = await User.findById(userId); // Lấy thông tin người trả lời
+
+      await Notification.create({
+        userId: comment.userId, // Người nhận thông báo
+        message: `💬 ${replier.fullname} đã trả lời bình luận của bạn`,
+        link: `/post/${post._id}`, // Đường dẫn đến bài viết
+        isRead: false,
+        name: replier.fullname,
+        type: replier.avatar,
+        createdAt: new Date(),
+      });
+    }
 
     res.status(201).json(comment.replies);
   } catch (error) {

@@ -10,7 +10,7 @@
               <img :src="post.authorId?.avatar || defaultAvatar" class="avatar" />
               <div class="post-info">
                 <p class="author-name">{{ post.authorId?.fullname }}</p>
-                <p class="post-time">{{ new Date(post.createdAt).toLocaleString() }}</p>
+                <p class="post-time">{{ formatTimeAgo(post.createdAt) }}</p>
               </div>
             </div>
             <div class="add-class-menu" v-if="isTeacher" @click="toggleDropdown(post._id)">
@@ -62,7 +62,7 @@
               <div class="comment-content">
                 <p class="comment-author">{{ comment.userId.fullname }}</p>
                 <p class="comment-text">{{ comment.text }}</p>
-                <p class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</p>
+                <p class="comment-time">{{ formatTimeAgo(comment.createdAt) }}</p>
                 
                 <div class="actions">
                   <button @click="showReplyInput[comment._id] = !showReplyInput[comment._id]">
@@ -105,7 +105,7 @@
                       <div class="comment-content">
                         <p class="comment-author">{{ reply.userId.fullname }}</p>
                         <p class="comment-text">{{ reply.text }}</p>
-                        <p class="comment-time">{{ new Date(reply.createdAt).toLocaleString() }}</p>
+                        <p class="comment-time">{{ formatTimeAgo(reply.createdAt) }}</p>
                         <div class="comment-actions" v-if="user=== reply.userId._id || isTeacher">
                           <button v-if="user=== reply.userId._id" @click="editReply(comment._id, reply)">Chỉnh sửa</button>
                           <button @click="deleteReply(comment._id, reply._id)">Xóa</button> 
@@ -303,7 +303,17 @@ const saveEditReply = async (commentId) => {
   await fetchComments()
   toast.success("Đã cập nhật câu trả lời");
 }
+const formatTimeAgo = (date) => {
+  const d = new Date(date);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000); // seconds
 
+  if (diff < 60) return "Vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
+  return d.toLocaleDateString();
+};
 
 
 onMounted(()=>{

@@ -33,7 +33,7 @@
             <span v-if="loading">Đang cập nhật...</span>
             <span v-else>Cập nhật</span>
           </button>
-          <button type="button" class="btn btn-danger" @click="deleteClass" :disabled="loading">
+          <button type="button" class="btn btn-danger" @click="deleteClass" :disabled="loading" v-if="isAuthor">
             <span v-if="loading">Đang xóa...</span>
             <span v-else>Xóa lớp</span>
           </button>
@@ -49,12 +49,17 @@ import { ref, watch } from "vue";
 import axios from "axios";
 import { useToast } from "vue-toastification";
 import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+
+
+const authStore = useAuthStore();
+const currentUser = ref(authStore.user); 
 
 const router = useRouter();
 
 const toast = useToast();
 
-const props = defineProps(["classData", "isOpen"]);
+const props = defineProps(["classData", "isOpen","isAuthor"]);
 const emit = defineEmits(["close", "classUpdated"]);
 
 const className = ref("");
@@ -98,6 +103,8 @@ const updateClass = async () => {
     formData.append("name", className.value);
     formData.append("description", description.value);
     formData.append("classCode", classCode.value);
+    formData.append("userId", currentUser.value.id);
+    console.log(currentUser.value.id);
     if (image.value) formData.append("image", image.value);
 
     await axios.put(`http://localhost:5000/api/classes/${props.classData._id}`, formData, {
@@ -108,7 +115,7 @@ const updateClass = async () => {
     emit("classUpdated");
     emit("close");
   } catch (error) {
-    alert("Lỗi khi cập nhật lớp học!");
+    toast.error("Lỗi khi cập nhật lớp học!");
     console.error(error);
   } finally {
     loading.value = false;

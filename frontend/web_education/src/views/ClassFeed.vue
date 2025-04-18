@@ -17,7 +17,8 @@
             <EditClassPopup 
                 v-if="isPopupOpen" 
                 :isOpen="isPopupOpen" 
-                :classData="selectedClass" 
+                :classData="selectedClass"
+                :is-author="isAuthor" 
                 @close="isPopupOpen = false" 
                 @classUpdated="fetchClassData"
             />
@@ -263,7 +264,11 @@ const currentUser = ref(authStore.user); // Lưu thông tin người dùng hiệ
 const isTeacher = computed(() => {
   return teachers.value.some(teacher => teacher._id === currentUser.value.id);
 });
-
+const isAuthor = computed(() => {
+  return teachers.value[0]?._id === currentUser.value.id;
+});
+console.log(isAuthor);
+console.log(isTeacher);
 const route = useRoute();
 const teachers = ref([]);
 const students = ref([]);

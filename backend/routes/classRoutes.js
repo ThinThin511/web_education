@@ -4,6 +4,7 @@ const multer = require("multer");
 const jwt = require("jsonwebtoken");
 const Class = require("../models/Class"); // Model lớp học
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 const fs = require("fs");
 const path = require("path");
 
@@ -316,7 +317,7 @@ router.post("/join-teacher/:inviteCode", async (req, res) => {
 router.put("/:classId", upload.single("image"), async (req, res) => {
   try {
     const { classId } = req.params;
-    const { name, description, classCode } = req.body;
+    const { name, description, classCode, userId } = req.body;
 
     const classroom = await Class.findById(classId);
     if (!classroom) {
@@ -349,6 +350,32 @@ router.put("/:classId", upload.single("image"), async (req, res) => {
     classroom.image = imagePath;
 
     await classroom.save();
+
+    const classroom1 = await Class.findById(classId).populate(
+      "teachers students",
+      "fullname"
+    );
+
+    const allMembers = [...classroom1.teachers, ...classroom1.students];
+    const recipients = allMembers.filter(
+      (member) => String(member._id) !== String(userId)
+    );
+
+    const author = await User.findById(userId); // Lấy tên người đăng bài
+
+    const notifications = recipients.map((user) => ({
+      userId: user._id,
+      message: `${author.fullname} đã cập nhật thông tin lớp ${classroom1.name}`,
+      link: `/class/${classId}/feed`,
+      name: author.fullname,
+      type: author.avatar,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    // Tạo hàng loạt thông báo
+    await Notification.insertMany(notifications);
+
     res.json({ message: "Cập nhật lớp học thành công!", classroom });
   } catch (error) {
     console.error("Lỗi khi cập nhật lớp học:", error);

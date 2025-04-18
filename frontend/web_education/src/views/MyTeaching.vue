@@ -66,7 +66,7 @@ const userId = authStore.user?.id; // Thay bằng userId từ store hoặc local
 const fetchUserClasses = async () => {
   try {
     const response = await axios.get(`http://localhost:5000/api/classes?userId=${userId}`);
-    userClasses.value = response.data.studentClasses || []; 
+    userClasses.value = response.data.teacherClasses || []; 
   } catch (error) {
     console.error("Lỗi khi tải danh sách lớp học:", error);
   }

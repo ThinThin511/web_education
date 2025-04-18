@@ -12,6 +12,7 @@ import JoinTeacher from "@/views/JoinTeacher.vue";
 import { useToast } from "vue-toastification";
 import PostDetail from "@/views/PostDetail.vue";
 import AssignmentDetail from "@/views/AssignmentDetail.vue";
+import MyTeaching from "@/views/MyTeaching.vue";
 
 const toast = useToast();
 
@@ -20,6 +21,11 @@ const routes = [
     path: "/",
     component: HomePage,
     meta: { requiresAuth: true, title: "Lớp học" },
+  },
+  {
+    path: "/myteaching",
+    component: MyTeaching,
+    meta: { title: "Giảng dạy" },
   },
   { path: "/register", component: RegisterView },
   { path: "/login", component: LoginView },

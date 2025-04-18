@@ -157,11 +157,28 @@ router.get("/", async (req, res) => {
     const classes = await Class.find({
       $or: [{ teachers: userObjectId }, { students: userObjectId }],
     })
-      .populate("teachers", "fullname avatar") // Lấy thông tin giáo viên từ User
+      .populate("teachers", "fullname avatar")
       .populate("students", "fullname");
 
-    console.log("📌 Danh sách lớp trả về:", classes);
-    res.json({ classes });
+    // Phân loại lớp học theo vai trò
+    const teacherClasses = [];
+    const studentClasses = [];
+
+    classes.forEach((cls) => {
+      const isTeacher = cls.teachers.some((teacher) =>
+        teacher._id.equals(userObjectId)
+      );
+      const isStudent = cls.students.some((student) =>
+        student._id.equals(userObjectId)
+      );
+
+      if (isTeacher) teacherClasses.push(cls);
+      else if (isStudent) studentClasses.push(cls);
+    });
+    res.json({
+      teacherClasses,
+      studentClasses,
+    });
   } catch (error) {
     console.error("❌ Lỗi lấy danh sách lớp:", error);
     res.status(500).json({ message: "Lỗi server" });

@@ -5,16 +5,16 @@
       <span>Lớp học</span>
     </div>
     <nav class="menu">
-      <router-link to="/" class="menu-item">
+      <router-link to="/" class="menu-item" active-class="active">
         <i class="fas fa-home"></i> <span>Trang chủ</span>
       </router-link>
-      <router-link to="/" class="menu-item">
+      <router-link to="/myteaching" class="menu-item" active-class="active">
         <i class="fas fa-calendar"></i> <span>Giảng dạy</span>
       </router-link>
-      <router-link to="/" class="menu-item">
+      <router-link to="/reminder" class="menu-item" active-class="active">
         <i class="fa fa-clock"></i> <span>Lời nhắc</span>
       </router-link>
-      <router-link to="/" class="menu-item">
+      <router-link to="/exem" class="menu-item" active-class="active">
         <i class="fas fa-book"></i> <span>Bài kiểm tra</span>
       </router-link>
     </nav>
@@ -79,4 +79,11 @@
 .menu-item i {
   font-size: 18px;
 }
+.menu-item.active {
+  background: #007bff;
+  color: white;
+  font-weight: 600;
+  box-shadow: inset 4px 0 0 #0056b3;
+}
+
 </style>

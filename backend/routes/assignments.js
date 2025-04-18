@@ -668,5 +668,39 @@ router.get("/:id/submissions", async (req, res) => {
     res.status(500).json({ message: "Lỗi server" });
   }
 });
+router.get("/reminders", async (req, res) => {
+  try {
+    const { userId, classId } = req.query;
+
+    if (!userId) return res.status(400).json({ message: "Thiếu userId" });
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    // Nếu classId = all → tìm tất cả các lớp mà học sinh đang học
+    let classIds = [];
+
+    if (!classId || classId === "all") {
+      const classes = await Classroom.find({ students: userObjectId }).select(
+        "_id"
+      );
+      classIds = classes.map((c) => c._id);
+    } else {
+      classIds = [classId];
+    }
+
+    const assignments = await Assignment.find({
+      classId: { $in: classIds },
+      dueDate: { $gte: new Date() }, // chưa quá hạn
+      submissions: { $not: { $elemMatch: { studentId: userObjectId } } }, // chưa nộp
+    })
+      .populate("classId", "name")
+      .sort({ dueDate: 1 });
+
+    res.json({ assignments });
+  } catch (err) {
+    console.error("❌ Lỗi lấy lời nhắc:", err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
 
 module.exports = router;

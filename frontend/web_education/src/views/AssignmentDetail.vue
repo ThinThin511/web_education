@@ -141,7 +141,7 @@
             <h3 v-if="submissions.length>0" class="table-title">Danh sách nộp bài</h3>
             <div class="submission-stats">
               <div class="tooltip-wrapper">
-                <span>Đã nộp: {{ submissions.length }}</span>
+                <span>Đã nộp: {{ submittedStudents.length }}</span>
                 <div class="tooltip">
                   
                   <p v-for="s in submittedStudents" :key="s._id"><img :src="s?.avatar || defaultAvatar" class="avatar" />{{ s.fullname }}</p>
@@ -149,7 +149,7 @@
               </div>
 
               <div class="tooltip-wrapper">
-                <span>Chưa nộp: {{ students.length - submissions.length }}</span>
+                <span>Chưa nộp: {{ notSubmittedStudents.length }}</span>
                 <div class="tooltip">
                   <p v-for="s in notSubmittedStudents" :key="s._id"><img :src="s?.avatar || defaultAvatar" class="avatar" />{{ s.fullname }}</p>
                 </div>
@@ -206,7 +206,7 @@
               <div class="comment-content">
                 <p class="comment-author">{{ comment.userId.fullname }}</p>
                 <p class="comment-text">{{ comment.text }}</p>
-                <p class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</p>
+                <p class="comment-time">{{ formatTimeAgo(comment.createdAt) }}</p>
                 
                 <div class="actions">
                   <button @click="showReplyInput[comment._id] = !showReplyInput[comment._id]">
@@ -249,7 +249,7 @@
                       <div class="comment-content">
                         <p class="comment-author">{{ reply.userId.fullname }}</p>
                         <p class="comment-text">{{ reply.text }}</p>
-                        <p class="comment-time">{{ new Date(reply.createdAt).toLocaleString() }}</p>
+                        <p class="comment-time">{{ formatTimeAgo(reply.createdAt) }}</p>
                         <div class="comment-actions" v-if="user=== reply.userId._id || isTeacher">
                           <button v-if="user=== reply.userId._id" @click="editReply(comment._id, reply)">Chỉnh sửa</button>
                           <button @click="deleteReply(comment._id, reply._id)">Xóa</button> 
@@ -616,16 +616,28 @@ const saveScore = async (submission) => {
     console.error("Lỗi cập nhật điểm:", error);
   }
 };
-const notSubmittedStudents = computed(() => {
+const submittedStudents = computed(() => {
+
   const submittedIds = submissions.value.map(s => s.studentId?._id);
+  console.log(submittedIds);
   return students.value.filter(s => submittedIds.includes(s._id));
 });
 
-const submittedStudents = computed(() => {
+const notSubmittedStudents = computed(() => {
   const submittedIds = submissions.value.map(s => s.studentId?._id);
   return students.value.filter(s => !submittedIds.includes(s._id));
 });
+const formatTimeAgo = (date) => {
+  const d = new Date(date);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000); // seconds
 
+  if (diff < 60) return "Vừa xong";
+  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} giờ trước`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} ngày trước`;
+  return d.toLocaleDateString();
+};
 onMounted(()=>{
   fetchAssignment();
   fetchComments();

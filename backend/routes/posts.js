@@ -242,7 +242,7 @@ router.post("/:postId/comments", async (req, res) => {
         link: `/post/${post._id}`,
         isRead: false,
         name: populatedComment.userId.fullname,
-        type: populatedComment.userId.avatar,
+        type: populatedComment.userId?.avatar,
         createdAt: new Date(),
       });
     }
@@ -300,18 +300,41 @@ router.post("/:postId/comments/:commentId/replies", async (req, res) => {
       "fullname avatar"
     );
 
-    if (String(userId) !== String(comment.userId)) {
-      const replier = await User.findById(userId); // Lấy thông tin người trả lời
+    const replier = await User.findById(userId); // Người gửi reply
+    const notifications = new Map(); // Dùng Map để tránh trùng ID
 
-      await Notification.create({
-        userId: comment.userId, // Người nhận thông báo
+    // ✅ Gửi cho chủ bình luận (nếu không phải là người reply)
+    if (String(userId) !== String(comment.userId._id)) {
+      notifications.set(String(comment.userId._id), {
+        userId: comment.userId._id,
         message: `💬 ${replier.fullname} đã trả lời bình luận của bạn`,
-        link: `/post/${post._id}`, // Đường dẫn đến bài viết
-        isRead: false,
-        name: replier.fullname,
-        type: replier.avatar,
-        createdAt: new Date(),
       });
+    }
+
+    // ✅ Gửi cho những người từng reply vào bình luận này (trừ chính mình)
+    comment.replies.forEach((reply) => {
+      const replyUserId = String(reply.userId._id || reply.userId);
+      if (replyUserId !== String(userId) && !notifications.has(replyUserId)) {
+        notifications.set(replyUserId, {
+          userId: reply.userId._id || reply.userId,
+          message: `💬 ${replier.fullname} cũng đã trả lời vào một bình luận mà bạn tham gia`,
+        });
+      }
+    });
+
+    // ✅ Tạo thông báo
+    const notiDocs = Array.from(notifications.values()).map((n) => ({
+      userId: n.userId,
+      message: n.message,
+      link: `/post/${post._id}`,
+      isRead: false,
+      name: replier.fullname,
+      type: replier.avatar,
+      createdAt: new Date(),
+    }));
+
+    if (notiDocs.length > 0) {
+      await Notification.insertMany(notiDocs);
     }
 
     res.status(201).json(comment.replies);

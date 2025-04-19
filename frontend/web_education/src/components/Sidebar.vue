@@ -14,7 +14,7 @@
       <router-link to="/reminder" class="menu-item" active-class="active">
         <i class="fa fa-clock"></i> <span>Lời nhắc</span>
       </router-link>
-      <router-link to="/exem" class="menu-item" active-class="active">
+      <router-link to="/exam" class="menu-item" active-class="active">
         <i class="fas fa-book"></i> <span>Bài kiểm tra</span>
       </router-link>
     </nav>

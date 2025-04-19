@@ -29,6 +29,9 @@ app.use("/api/assignments", assignmentRoutes);
 const notificationRoutes = require("./routes/notificaton");
 app.use("/api/notifications", notificationRoutes);
 
+const quizRoutes = require("./routes/quiz");
+app.use("/api/quizzes", quizRoutes);
+
 app.get("/", (req, res) => res.send("API is running..."));
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

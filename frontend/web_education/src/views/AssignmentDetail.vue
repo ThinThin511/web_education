@@ -608,7 +608,7 @@ const saveScore = async (submission) => {
   try {
     const response = await axios.patch(
       `http://localhost:5000/api/assignments/${route.params.assignmentId}/submissions/${submission.id}`,
-      { score: submission.score }
+      { score: submission.score , userId:currentUser.value.id}
     );
     console.log("Cập nhật điểm thành công:", response.data);
     toast.success("Đã cập nhật điểm số");

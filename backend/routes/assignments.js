@@ -93,7 +93,7 @@ router.get("/class/:classId", async (req, res) => {
 router.patch("/:assignmentId/submissions/:submissionId", async (req, res) => {
   try {
     const { assignmentId, submissionId } = req.params;
-    const { score } = req.body;
+    const { score, userId } = req.body;
 
     // Sử dụng update operator để cập nhật trường score cho submission có _id tương ứng
     const assignment = await Assignment.findOneAndUpdate(
@@ -107,6 +107,22 @@ router.patch("/:assignmentId/submissions/:submissionId", async (req, res) => {
         .status(404)
         .json({ message: "Assignment hoặc submission không tồn tại" });
     }
+
+    // Tìm thông tin bài nộp vừa được chấm điểm
+    const submission = assignment.submissions.id(submissionId);
+    const student = await User.findById(submission.studentId);
+    const teacher = await User.findById(userId);
+
+    // Gửi thông báo cho học sinh
+    await Notification.create({
+      userId: student._id,
+      message: `📝 ${teacher.fullname} đã chấm điểm bài tập "${assignment.title}" của bạn`,
+      link: `/assignment/${assignment._id}`,
+      isRead: false,
+      name: teacher.fullname,
+      type: teacher.avatar,
+      createdAt: new Date(),
+    });
 
     return res.json({
       message: "Cập nhật điểm thành công",
@@ -548,6 +564,27 @@ router.post(
       }
 
       await assignment.save();
+
+      // Gửi thông báo cho giáo viên
+      const student = await User.findById(userId);
+      const classroom = await Classroom.findById(assignment.classId).populate(
+        "teachers",
+        "fullname avatar"
+      );
+      const teachers = classroom.teachers || [];
+
+      const notifications = teachers.map((teacher) => ({
+        userId: teacher._id,
+        message: `📥 ${student.fullname} đã nộp bài tập "${assignment.title}"`,
+        link: `/assignment/${assignment._id}`,
+        isRead: false,
+        name: student.fullname,
+        type: student.avatar,
+        createdAt: new Date(),
+      }));
+
+      await Notification.insertMany(notifications);
+
       res.status(200).json({ message: "Nộp bài thành công" });
     } catch (err) {
       console.error("❌ Lỗi khi nộp bài:", err);

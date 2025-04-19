@@ -9,6 +9,7 @@
             <router-link :to="`/class/${classId}/feed`" active-class="active">Bảng tin</router-link>
             <router-link :to="`/class/${classId}/assignments`" active-class="active">Bài tập trên lớp</router-link>
             <router-link :to="`/class/${classId}/people`" active-class="active">Mọi người</router-link>
+            <router-link :to="`/class/${classId}/quiz`" active-class="active">Bài kiểm tra</router-link>
           </div>
           <div class="settings" v-if="isTeacher">
             <button @click="openSettings">

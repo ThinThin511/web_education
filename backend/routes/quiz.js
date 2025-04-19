@@ -161,5 +161,44 @@ router.put("/:id", async (req, res) => {
     res.status(500).json({ error: "Lỗi khi cập nhật bài kiểm tra." });
   }
 });
+router.put("/assign/:id", async (req, res) => {
+  try {
+    const { quizId, classId, startTime, endTime, maxAttempts } = req.body;
 
+    if (new Date(endTime) <= new Date(startTime)) {
+      return res
+        .status(400)
+        .json({ message: "End time must be after start time." });
+    }
+
+    const updated = await QuizAssignment.findByIdAndUpdate(
+      req.params.id,
+      { quizId, classId, startTime, endTime, maxAttempts },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    res.json({ message: "Updated successfully", assignment: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Update failed" });
+  }
+});
+// Xoá bài kiểm tra đã gán vào lớp
+router.delete("/assign/:id", async (req, res) => {
+  try {
+    const deleted = await QuizAssignment.findByIdAndDelete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: "Assignment not found" });
+    }
+
+    res.json({ message: "Deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Deletion failed" });
+  }
+});
 module.exports = router;

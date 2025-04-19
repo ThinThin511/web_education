@@ -299,9 +299,10 @@ const handleClassJoined = () => {
 
 .quiz-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  max-width: 100%;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 20px;
+  padding: 30px;
+  max-width: 100%;
 }
 
 .quiz-card {

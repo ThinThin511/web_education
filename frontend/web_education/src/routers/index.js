@@ -15,6 +15,7 @@ import AssignmentDetail from "@/views/AssignmentDetail.vue";
 import MyTeaching from "@/views/MyTeaching.vue";
 import Reminder from "@/views/Reminder.vue";
 import QuizList from "@/views/QuizList.vue";
+import ClassQuiz from "@/views/ClassQuiz.vue";
 
 const toast = useToast();
 
@@ -65,6 +66,11 @@ const routes = [
     path: "/class/:id/assignments",
     component: ClassAssignment,
     meta: { title: "Bài tập trên lớp" },
+  },
+  {
+    path: "/class/:id/quiz",
+    component: ClassQuiz,
+    meta: { title: "Bài kiểm tra" },
   },
   {
     path: "/post/:postId",

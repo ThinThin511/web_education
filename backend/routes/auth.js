@@ -4,7 +4,8 @@ const multer = require("multer");
 const path = require("path");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
-
+const otpCache = require("../ultils/otpCache");
+const { sendEmail } = require("../ultils/mailer");
 const router = express.Router();
 
 router.post("/register", async (req, res) => {
@@ -187,6 +188,69 @@ router.put("/change-password", async (req, res) => {
   } catch (error) {
     console.error("Lỗi đổi mật khẩu:", error);
     res.status(500).json({ message: "Lỗi hệ thống" });
+  }
+});
+// Xác minh OTP
+router.post("/verify-otp", (req, res) => {
+  const { email, otp } = req.body;
+  if (!email || !otp) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Thiếu email hoặc mã OTP" });
+  }
+
+  const cached = otpCache.get(email);
+  if (!cached) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Không tìm thấy mã OTP" });
+  }
+
+  if (Date.now() > cached.expiresAt) {
+    otpCache.delete(email);
+    return res.status(400).json({ valid: false, message: "Mã OTP đã hết hạn" });
+  }
+
+  if (cached.otp !== otp) {
+    return res
+      .status(400)
+      .json({ valid: false, message: "Mã OTP không chính xác" });
+  }
+
+  otpCache.delete(email); // OTP đúng thì xóa
+  res.json({ valid: true });
+});
+const generateOTP = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
+
+// Gửi OTP qua email
+router.post("/send-otp", async (req, res) => {
+  const { fullname, email, password } = req.body;
+  if (!fullname || !email || !password)
+    return res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin" });
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser)
+    return res.status(400).json({ message: "Email đã được sử dụng" });
+
+  if (!email) return res.status(400).json({ message: "Thiếu email" });
+  console.log("otpCache:", otpCache);
+  const otp = generateOTP();
+  const expiresAt = Date.now() + 60 * 1000; // 1 phút
+  console.log("otp:", otp);
+  otpCache.set(email, { otp, expiresAt });
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Mã xác thực đăng ký tài khoản",
+      html: `<p>Mã OTP của bạn là: ${otp}. Mã sẽ hết hạn sau 1 phút.</p>`,
+    });
+
+    res.json({ message: "Gửi mã OTP thành công" });
+  } catch (err) {
+    console.error("❌ Gửi mail thất bại:", err);
+    res.status(500).json({ message: "Không thể gửi mã OTP" });
   }
 });
 

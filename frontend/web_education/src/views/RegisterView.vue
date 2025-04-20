@@ -8,7 +8,7 @@
           <p class="text-muted">Tham gia cộng đồng học tập cùng chúng tôi!</p>
         </div>
 
-        <form @submit.prevent="register">
+        <form @submit.prevent="handleSubmit">
           <div class="form-group mb-3">
             <label for="fullname">👤 Họ và tên:</label>
             <input type="text" id="fullname" v-model="fullname" class="form-control" required />
@@ -39,7 +39,32 @@
             <input type="date" id="birthday" v-model="birthday" class="form-control" />
           </div>
 
-          <button type="submit" class="btn btn-study w-100 mt-2">🚀 Đăng ký</button>
+          <div v-if="showOTPInput" class="form-group mb-3">
+            <label for="otp">🔐 Nhập mã OTP:</label>
+            <input
+              type="text"
+              id="otp"
+              v-model="otp"
+              class="form-control"
+              maxlength="6"
+            />
+            <small v-if="countdown > 0">⏳ Còn lại: {{ countdown }}s</small>
+            <button
+              type="button"
+              @click="sendOTP"
+              class="btn btn-link p-0"
+              :disabled="countdown > 0"
+            >
+              Gửi lại mã
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-study w-100 mt-2"
+          >
+            🚀 {{ showOTPInput ? "Xác nhận OTP và đăng ký" : "Gửi mã OTP" }}
+          </button>
 
           <div v-if="errorMessage" class="alert alert-danger mt-3 text-center">
             {{ errorMessage }}
@@ -56,7 +81,8 @@
 
 <script>
 import axios from "axios";
-
+import { useToast } from "vue-toastification";
+const toast = useToast();
 export default {
   data() {
     return {
@@ -67,6 +93,11 @@ export default {
       phone: "",
       birthday: "",
       errorMessage: "",
+      showOTPInput: false,
+      otp: "",
+      countdown: 60,
+      otpSent: false,
+      intervalId: null,
     };
   },
   methods: {
@@ -92,6 +123,70 @@ export default {
         this.errorMessage = error.response?.data?.message || "Lỗi đăng ký!";
       }
     },
+    async sendOTP() {
+      try {
+        const res = await axios.post("http://localhost:5000/api/auth/send-otp", {
+          fullname: this.fullname,
+            email: this.email,
+            password: this.password,
+        });
+        this.otpSent = true;
+        this.showOTPInput = true;
+        this.countdown = 60;
+        this.startCountdown();
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message || "Lỗi gửi mã OTP!";
+      }
+    },
+
+    startCountdown() {
+      this.intervalId = setInterval(() => {
+        this.countdown--;
+        if (this.countdown <= 0) {
+          clearInterval(this.intervalId);
+        }
+      }, 1000);
+    },
+    async verifyAndRegister() {
+      try {
+        const res = await axios.post("http://localhost:5000/api/auth/verify-otp", {
+          email: this.email,
+          otp: this.otp,
+        });
+
+        if (res.data.valid) {
+          await axios.post("http://localhost:5000/api/auth/register", {
+            fullname: this.fullname,
+            email: this.email,
+            password: this.password,
+            phone: this.phone,
+            birthday: this.birthday,
+          });
+          toast.success("Đăng ký tài khoản thành công!");
+          this.$router.push("/login");
+        } else {
+          this.errorMessage = error.response?.data?.message || "Mã xác thực không đúng!";
+        }
+      } catch (error) {
+        this.errorMessage = error.response?.data?.message ||  "Xác thực OTP thất bại!";
+      }
+    },
+    handleSubmit() {
+      this.errorMessage = "";
+
+      if (this.password !== this.confirmPassword) {
+        this.errorMessage = "Mật khẩu xác nhận không khớp!";
+        return;
+      }
+
+      if (!this.showOTPInput) {
+        this.sendOTP();
+      } else {
+        this.verifyAndRegister();
+        
+      }
+    },
+
   },
 };
 </script>

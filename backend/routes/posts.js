@@ -9,6 +9,8 @@ const Notification = require("../models/Notification");
 const User = require("../models/User");
 const Classroom = require("../models/Class");
 const { type } = require("os");
+const { sendEmail } = require("../ultils/mailer");
+const { title } = require("process");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -56,7 +58,7 @@ router.post("/", upload.array("files", 5), async (req, res) => {
 
     const classroom = await Classroom.findById(classId).populate(
       "teachers students",
-      "fullname"
+      "fullname email"
     );
 
     const allMembers = [...classroom.teachers, ...classroom.students];
@@ -78,6 +80,22 @@ router.post("/", upload.array("files", 5), async (req, res) => {
 
     // Tạo hàng loạt thông báo
     await Notification.insertMany(notifications);
+    for (const user of recipients) {
+      console.log(user);
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: `📢 Thông báo mới từ lớp học ${classroom.name}`,
+          html: `
+            <p>Xin chào ${user.fullname},</p>
+            <p><strong>${author.fullname}</strong> vừa đăng thông báo mới trong lớp <strong>${classroom.name}</strong>.</p>
+            <blockquote>${title}</blockquote>
+            <a href="http://localhost:5173/class/${classId}/feed">Xem chi tiết</a>
+            <p>WEB EDUCATION</p>
+          `,
+        });
+      }
+    }
 
     res.status(201).json(newPost);
   } catch (error) {
@@ -234,7 +252,7 @@ router.post("/:postId/comments", async (req, res) => {
     // Lấy bình luận cuối cùng từ post đã populate
     const populatedComment =
       populatedPost.comments[populatedPost.comments.length - 1];
-
+    const author = await User.findById(post.authorId);
     if (post.authorId.toString() !== userId) {
       await Notification.create({
         userId: post.authorId,
@@ -244,6 +262,15 @@ router.post("/:postId/comments", async (req, res) => {
         name: populatedComment.userId.fullname,
         type: populatedComment.userId?.avatar,
         createdAt: new Date(),
+      });
+      await sendEmail({
+        to: author.email,
+        subject: "📢 Bạn có bình luận mới!",
+        html: `
+      
+      <p>💬 ${populatedComment.userId.fullname} đã bình luận vào bài viết của bạn.</p>
+      <a href="http://localhost:5173/post/${post._id}">Bấm vào đây để xem chi tiết</a>
+    `,
       });
     }
 
@@ -335,6 +362,21 @@ router.post("/:postId/comments/:commentId/replies", async (req, res) => {
 
     if (notiDocs.length > 0) {
       await Notification.insertMany(notiDocs);
+      for (const noti of notiDocs) {
+        const receiver = await User.findById(noti.userId);
+        if (!receiver || !receiver.email) continue;
+
+        await sendEmail({
+          to: receiver.email,
+          subject: "📢 Thông báo mới từ bài viết",
+          html: `
+        <p>Xin chào ${receiver.fullname},</p>
+        <p>${noti.message}</p>
+        <a href="http://localhost:5173/post/${post._id}">Xem chi tiết</a>
+        <p>WEB EDUCATION</p>
+      `,
+        });
+      }
     }
 
     res.status(201).json(comment.replies);

@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const Classroom = require("../models/Class");
+const { sendEmail } = require("../ultils/mailer");
 // Cấu hình lưu file
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/assignments/"),
@@ -37,7 +38,7 @@ router.post("/", upload.array("attachments"), async (req, res) => {
 
     const classroom = await Classroom.findById(classId).populate(
       "teachers students",
-      "fullname"
+      "fullname email"
     );
 
     const allMembers = [...classroom.teachers, ...classroom.students];
@@ -59,7 +60,22 @@ router.post("/", upload.array("attachments"), async (req, res) => {
 
     // Tạo hàng loạt thông báo
     await Notification.insertMany(notifications);
-
+    for (const user of recipients) {
+      console.log(user);
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: `📢 Thông báo mới từ lớp học ${classroom.name}`,
+          html: `
+            <p>Xin chào ${user.fullname},</p>
+            <p><strong>${author.fullname}</strong> vừa đăng bài tập mới trong lớp <strong>${classroom.name}</strong>.</p>
+            <blockquote>${title}</blockquote>
+            <a href="http://localhost:5173/class/${classId}/assignments">Xem chi tiết</a>
+            <p>WEB EDUCATION</p>
+          `,
+        });
+      }
+    }
     res.json(saved);
   } catch (err) {
     res.status(500).json({ error: "Tạo bài tập thất bại." });
@@ -123,7 +139,19 @@ router.patch("/:assignmentId/submissions/:submissionId", async (req, res) => {
       type: teacher.avatar,
       createdAt: new Date(),
     });
-
+    if (student.email) {
+      await sendEmail({
+        to: student.email,
+        subject: `📝 Bài tập "${assignment.title}" đã được chấm điểm`,
+        html: `
+      <p>Xin chào ${student.fullname},</p>
+      <p>Giáo viên <strong>${teacher.fullname}</strong> đã chấm điểm bài tập của bạn: <strong>${assignment.title}</strong>.</p>
+      <p>Điểm số: <strong>${score}</strong></p>
+      <a href="http://localhost:5173/assignment/${assignment._id}">Xem chi tiết</a>
+      <p>WEB EDUCATION</p>
+    `,
+      });
+    }
     return res.json({
       message: "Cập nhật điểm thành công",
       assignment,
@@ -293,7 +321,7 @@ router.post("/:assignmentId/comments", async (req, res) => {
 
     const populatedComment =
       populatedAssignment.comments[populatedAssignment.comments.length - 1];
-
+    const author = await User.findById(assignment.teacherId);
     if (assignment.teacherId.toString() !== userId) {
       await Notification.create({
         userId: assignment.teacherId,
@@ -303,6 +331,16 @@ router.post("/:assignmentId/comments", async (req, res) => {
         name: populatedComment.userId.fullname,
         type: populatedComment.userId?.avatar,
         createdAt: new Date(),
+      });
+      await sendEmail({
+        to: author.email,
+        subject: "📢 Bạn có bình luận mới!",
+        html: `
+      <p>Xin chào ${author.fullname},</p>
+      <p>💬 ${populatedComment.userId.fullname} đã bình luận vào bài viết của bạn.</p>
+      <a href="http://localhost:5173/assignment/${assignment._id}">Bấm vào đây để xem chi tiết</a>
+      <p>WEB EDUCATION</p>
+    `,
       });
     }
 
@@ -390,6 +428,21 @@ router.post("/:assignmentId/comments/:commentId/replies", async (req, res) => {
 
     if (notiDocs.length > 0) {
       await Notification.insertMany(notiDocs);
+      for (const noti of notiDocs) {
+        const receiver = await User.findById(noti.userId);
+        if (!receiver || !receiver.email) continue;
+
+        await sendEmail({
+          to: receiver.email,
+          subject: "📢 Thông báo mới từ bài viết",
+          html: `
+              <p>Xin chào ${receiver.fullname},</p>
+              <p>${noti.message}</p>
+              <a href="http://localhost:5173/assignment/${assignment._id}">Xem chi tiết</a>
+              <p>WEB EDUCATION</p>
+            `,
+        });
+      }
     }
 
     res.status(201).json(comment.replies);
@@ -569,7 +622,7 @@ router.post(
       const student = await User.findById(userId);
       const classroom = await Classroom.findById(assignment.classId).populate(
         "teachers",
-        "fullname avatar"
+        "fullname avatar email"
       );
       const teachers = classroom.teachers || [];
 
@@ -584,7 +637,21 @@ router.post(
       }));
 
       await Notification.insertMany(notifications);
+      for (const teacher of teachers) {
+        const email = teacher.email;
+        if (!email) continue;
 
+        await sendEmail({
+          to: email,
+          subject: `📥 ${student.fullname} đã nộp bài tập`,
+          html: `
+      <p>Xin chào ${teacher.fullname},</p>
+      <p><strong>${student.fullname}</strong> vừa nộp bài tập: <strong>${assignment.title}</strong></p>
+      <a href="http://localhost:5173/assignment/${assignment._id}">Xem chi tiết bài nộp</a>
+      <p>WEB EDUCATION</p>
+    `,
+        });
+      }
       res.status(200).json({ message: "Nộp bài thành công" });
     } catch (err) {
       console.error("❌ Lỗi khi nộp bài:", err);

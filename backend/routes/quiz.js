@@ -4,7 +4,10 @@ const mongoose = require("mongoose");
 const Quiz = require("../models/Quiz");
 const QuizAssignment = require("../models/QuizAssignment");
 const QuizSubmission = require("../models/QuizSubmission");
-
+const Notification = require("../models/Notification");
+const User = require("../models/User");
+const Classroom = require("../models/Class");
+const { sendEmail } = require("../ultils/mailer");
 // 1. Tạo bài kiểm tra (dùng chung)
 router.post("/create", async (req, res) => {
   console.log("📥 Dữ liệu nhận được từ client:", req.body);
@@ -30,7 +33,8 @@ router.post("/create", async (req, res) => {
 // 2. Gán bài kiểm tra vào lớp học (tạo QuizAssignment)
 router.post("/assign", async (req, res) => {
   try {
-    const { quizId, classId, startTime, endTime, maxAttempts } = req.body;
+    const { quizId, classId, startTime, endTime, maxAttempts, userId } =
+      req.body;
     const newAssignment = new QuizAssignment({
       quizId,
       classId,
@@ -39,6 +43,46 @@ router.post("/assign", async (req, res) => {
       maxAttempts,
     });
     await newAssignment.save();
+    const classroom = await Classroom.findById(classId).populate(
+      "teachers students",
+      "fullname email"
+    );
+
+    const allMembers = [...classroom.teachers, ...classroom.students];
+    const recipients = allMembers.filter(
+      (member) => String(member._id) !== String(userId)
+    );
+
+    const author = await User.findById(userId); // Lấy tên người đăng bài
+
+    const notifications = recipients.map((user) => ({
+      userId: user._id,
+      message: `${author.fullname} đã đăng bài kiểm tra mới trong lớp ${classroom.name}`,
+      link: `/class/${classId}/quiz`,
+      name: author.fullname,
+      type: author.avatar,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    // Tạo hàng loạt thông báo
+    await Notification.insertMany(notifications);
+    for (const user of recipients) {
+      console.log(user);
+      if (user.email) {
+        await sendEmail({
+          to: user.email,
+          subject: `📢 Thông báo mới từ lớp học ${classroom.name}`,
+          html: `
+                <p>Xin chào ${user.fullname},</p>
+                <p><strong>${author.fullname}</strong> vừa đăng bài kiểm mới trong lớp <strong>${classroom.name}</strong>.</p>
+                
+                <a href="http://localhost:5173/class/${classId}/quiz">Xem chi tiết</a>
+                <p>WEB EDUCATION</p>
+              `,
+        });
+      }
+    }
     res.status(201).json({
       message: "Gán bài kiểm tra thành công",
       assignment: newAssignment,

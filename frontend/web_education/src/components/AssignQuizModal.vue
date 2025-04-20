@@ -51,13 +51,18 @@ const form = ref({
 const assignQuiz = async () => {
     const start = new Date(form.value.startTime);
     const end = new Date(form.value.endTime);
-
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (!user || !user.id) {
+      alert("Lỗi: Không tìm thấy thông tin người dùng!");
+      return;
+    }
     if (end <= start) {
         toast.error("Thời gian kết thúc phải sau thời gian bắt đầu!");
         return;
     }
   try {
     const payload = {
+      userId:user.id,
       quizId: form.value.quizId,
       classId: props.classId,
       startTime: new Date(form.value.startTime),

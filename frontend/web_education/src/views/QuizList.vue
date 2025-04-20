@@ -10,26 +10,28 @@
             <button @click="showModal = true">+ Tạo bài kiểm tra</button>
             </div>
 
-            <div class="quiz-grid">
-            <div v-for="quiz in quizzes" :key="quiz._id" class="quiz-card">
-                <div class="quiz-card-header">
-                    <h2>{{ quiz.title }}</h2>
+            <div v-if="quizzes.length>0" class="quiz-grid">
+              <div v-for="quiz in quizzes" :key="quiz._id" class="quiz-card">
+                  <div class="quiz-card-header">
+                      <h2>{{ quiz.title }}</h2>
 
-                    <div class="menu-container" @click="toggleMenu(quiz._id)">
-                    ⋮
-                    <div v-if="activeMenu === quiz._id" class="menu-dropdown">
-                        <button @click="editQuiz(quiz)">✏️ Chỉnh sửa</button>
-                        <button @click="deleteQuiz(quiz._id)">🗑️ Xóa</button>
-                    </div>
-                    </div>
-                </div>
-                <p>{{ quiz.description }}</p>
-                <p>❓ Số câu hỏi: {{ quiz.questions?.length || 0 }}</p>
-                <p>🕒 Thời gian làm bài: {{ quiz.duration }} phút</p>
-                <p>📅 Ngày tạo: {{ formatDate(quiz.createdAt) }}</p>
+                      <div class="menu-container" @click="toggleMenu(quiz._id)">
+                      ⋮
+                      <div v-if="activeMenu === quiz._id" class="menu-dropdown">
+                          <button @click="editQuiz(quiz)">✏️ Chỉnh sửa</button>
+                          <button @click="deleteQuiz(quiz._id)">🗑️ Xóa</button>
+                      </div>
+                      </div>
+                  </div>
+                  <p>{{ quiz.description }}</p>
+                  <p>❓ Số câu hỏi: {{ quiz.questions?.length || 0 }}</p>
+                  <p>🕒 Thời gian làm bài: {{ quiz.duration }} phút</p>
+                  <p>📅 Ngày tạo: {{ formatDate(quiz.createdAt) }}</p>
+              </div>
             </div>
+            <div v-else >
+              <p style="text-align: center;">Chưa có bài kiểm tra được tạo</p>
             </div>
-
             <CreateQuizModal
             v-if="showModal"
             :user-id="userId"

@@ -201,4 +201,146 @@ router.delete("/assign/:id", async (req, res) => {
     res.status(500).json({ message: "Deletion failed" });
   }
 });
+//bắt đầu làm bài
+router.post("/start", async (req, res) => {
+  try {
+    const { quizAssignmentId, studentId } = req.body;
+
+    const assignment = await QuizAssignment.findById(quizAssignmentId).populate(
+      "quizId"
+    );
+    if (!assignment)
+      return res.status(404).json({ message: "Không tìm thấy bài kiểm tra." });
+
+    const now = new Date();
+    if (
+      now < new Date(assignment.startTime) ||
+      now > new Date(assignment.endTime)
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Bài kiểm tra chưa diễn ra hoặc đã kết thúc." });
+    }
+
+    const durationMs = assignment.quizId.duration * 60 * 1000;
+
+    // Tìm submission chưa nộp và còn thời gian
+    const existing = await QuizSubmission.findOne({
+      quizAssignmentId,
+      studentId,
+      submitted: false,
+    });
+
+    if (existing) {
+      const deadline = new Date(existing.startedAt.getTime() + durationMs);
+      if (now < deadline) {
+        return res.status(200).json({
+          submission: existing,
+          continue: true,
+          quiz: assignment.quizId, // <-- thêm quiz ở đây
+        });
+      }
+    }
+
+    // Kiểm tra số lần làm
+    const count = await QuizSubmission.countDocuments({
+      quizAssignmentId,
+      studentId,
+      submitted: true,
+    });
+
+    if (count >= assignment.maxAttempts) {
+      return res
+        .status(403)
+        .json({ message: "Bạn đã vượt quá số lần làm bài." });
+    }
+
+    // Tạo mới submission
+    const newSubmission = new QuizSubmission({
+      quizAssignmentId,
+      studentId,
+      attempt: count + 1,
+      submitted: false,
+      startedAt: now,
+      answers: [],
+    });
+
+    await newSubmission.save();
+
+    res.status(201).json({
+      submission: newSubmission,
+      continue: false,
+      quiz: assignment.quizId, // <-- thêm quiz ở đây luôn
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi khi bắt đầu làm bài." });
+  }
+});
+router.post("/:id/submit", async (req, res) => {
+  try {
+    const submission = await QuizSubmission.findById(req.params.id).populate({
+      path: "quizAssignmentId",
+      populate: { path: "quizId" },
+    });
+
+    if (!submission)
+      return res.status(404).json({ message: "Không tìm thấy bài làm." });
+    if (submission.submitted)
+      return res.status(400).json({ message: "Bài đã nộp." });
+
+    const quiz = submission.quizAssignmentId.quizId;
+    const totalQuestions = quiz.questions.length;
+
+    let correctCount = 0;
+    for (const answer of submission.answers) {
+      const question = quiz.questions[answer.questionIndex];
+      if (question && question.correctAnswer === answer.selectedOption) {
+        correctCount++;
+      }
+    }
+
+    // Tính điểm theo thang 10
+    const rawScore = (correctCount / totalQuestions) * 10;
+    const finalScore = Math.round(rawScore * 100) / 100; // làm tròn 2 chữ số thập phân
+
+    submission.score = finalScore;
+    submission.submitted = true;
+    submission.submittedAt = new Date();
+
+    await submission.save();
+
+    res.json({ message: "Đã nộp bài.", score: finalScore });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi khi nộp bài." });
+  }
+});
+router.patch("/:id/answer", async (req, res) => {
+  try {
+    const { questionIndex, selectedOption } = req.body;
+
+    const submission = await QuizSubmission.findById(req.params.id);
+    if (!submission)
+      return res.status(404).json({ message: "Không tìm thấy bài làm." });
+    if (submission.submitted)
+      return res.status(400).json({ message: "Bài đã nộp." });
+
+    // Cập nhật hoặc thêm đáp án
+    const existing = submission.answers.find(
+      (ans) => ans.questionIndex === questionIndex
+    );
+    if (existing) {
+      existing.selectedOption = selectedOption;
+    } else {
+      submission.answers.push({ questionIndex, selectedOption });
+    }
+
+    await submission.save();
+    res.json({ message: "Đã lưu đáp án." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi khi lưu đáp án." });
+  }
+});
 module.exports = router;

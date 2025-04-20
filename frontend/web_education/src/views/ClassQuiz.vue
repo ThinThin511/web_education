@@ -33,11 +33,11 @@
 
             <!-- Đang diễn ra -->
             <h4>🟢 Đang diễn ra</h4>
-            <div class="quiz-grid">
-                <div v-for="quiz in ongoingQuizzes" :key="quiz._id" class="quiz-card">
+            <div v-if="ongoingQuizzes.length>0" class="quiz-grid">
+              <div v-for="quiz in ongoingQuizzes" :key="quiz._id" class="quiz-card">
                 <div class="quiz-card-header">
                     <h2>{{ quiz.quizId.title }}</h2>
-                    <div class="menu-container" @click="toggleMenu(quiz._id)">
+                    <div class="menu-container" @click="toggleMenu(quiz._id)" v-if="isTeacher">
                     ⋮
                     <div v-if="activeMenu === quiz._id" class="menu-dropdown">
                         <button @click="editQuiz(quiz)">✏️ Chỉnh sửa</button>
@@ -48,14 +48,21 @@
                 <p>{{ quiz.quizId.description }}</p>
                 <p>📅 Bắt đầu: {{ formatDate(quiz.startTime) }}</p>
                 <p>📅 Kết thúc: {{ formatDate(quiz.endTime) }}</p>
+                
                 <p>❓ Số câu hỏi: {{ quiz.quizId.questions?.length || 0 }}</p>
                 <p>🕒 Thời gian làm bài: {{ quiz.quizId.duration }} phút</p>
-                </div>
+                <p style="text-align: center; font-weight: bold;">Số lượt làm bài: {{ quiz?.maxAttempts  }}</p>
+                <button @click="goToDoQuiz(quiz._id)" class="do-quiz-btn" v-if="!isTeacher">
+                  🚀 Làm bài
+                </button>
+              </div>
             </div>
-
+            <div v-else>
+              <p style="text-align: center;margin: 10px 0;">Không có bài kiểm tra nào đang diễn ra.</p>
+            </div>
             <!-- Sắp diễn ra -->
             <h4>🕓 Sắp diễn ra</h4>
-            <div class="quiz-grid">
+            <div v-if="upcomingQuizzes.length>0" class="quiz-grid">
                 <div v-for="quiz in upcomingQuizzes" :key="quiz._id" class="quiz-card">
                 <!-- tương tự nội dung ở trên -->
                 <div class="quiz-card-header">
@@ -75,10 +82,12 @@
                 <p>🕒 Thời gian làm bài: {{ quiz.quizId.duration }} phút</p>
                 </div>
             </div>
-
+            <div v-else>
+              <p style="text-align: center;margin: 10px 0;">Không có bài kiểm tra nào sắp diễn ra.</p>
+            </div>
             <!-- Đã kết thúc -->
             <h4>⚪ Đã kết thúc</h4>
-            <div class="quiz-grid">
+            <div v-if="pastQuizzes.length>0" class="quiz-grid">
                 <div v-for="quiz in pastQuizzes" :key="quiz._id" class="quiz-card">
                 <!-- tương tự nội dung ở trên -->
                 <div class="quiz-card-header">
@@ -98,7 +107,9 @@
                 <p>🕒 Thời gian làm bài: {{ quiz.quizId.duration }} phút</p>
                 </div>
             </div>
-
+            <div v-else>
+              <p style="text-align: center;margin: 10px 0;">Không có bài kiểm tra hết hạn.</p>
+            </div>
             <!-- Modal -->
             <AssignQuizModal
                 v-if="showModal"
@@ -116,7 +127,7 @@
 </template>
 <script setup>
 import { ref, watch, onMounted,computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute,useRouter } from "vue-router";
 import axios from "axios";
 import defaultAvatar from "@/assets/avatar.png";
 import Sidebar from "@/components/Sidebar.vue";
@@ -125,7 +136,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useToast } from "vue-toastification";
 import EditClassPopup from "@/components/EditClassPopup.vue";
 import AssignQuizModal from "@/components/AssignQuizModal.vue";
-
+const router = useRouter();
 const isPopupOpen = ref(false);
 const selectedClass = ref(null);
 const authStore = useAuthStore();
@@ -217,6 +228,15 @@ const deleteQuiz = async (assignmentId) => {
       toast.error("Lỗi khi xóa bài kiểm tra.");
     }
   }
+};
+
+const goToDoQuiz = (assignmentId) => {
+  console.log(assignmentId)
+  if (!assignmentId) {
+    console.error('quizAssignmentId bị undefined!');
+    return;
+  }
+  router.push(`/examinate/${assignmentId}`);
 };
 const currentUser = ref(authStore.user); // Lưu thông tin người dùng hiện tại
 
@@ -602,5 +622,24 @@ const fetchClassPeople = async () => {
 
 .menu-dropdown button:hover {
   background: #f3f4f6;
+}
+.do-quiz-btn {
+  display: block;
+  margin: 16px auto 0;
+  background-color: #10b981;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+  
+}
+
+.do-quiz-btn:hover {
+  background-color: #059669;
 }
 </style>

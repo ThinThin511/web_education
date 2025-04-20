@@ -16,6 +16,7 @@ import MyTeaching from "@/views/MyTeaching.vue";
 import Reminder from "@/views/Reminder.vue";
 import QuizList from "@/views/QuizList.vue";
 import ClassQuiz from "@/views/ClassQuiz.vue";
+import Exam from "@/views/exam.vue";
 
 const toast = useToast();
 
@@ -39,6 +40,11 @@ const routes = [
     path: "/exam",
     component: QuizList,
     meta: { title: "Bài kiểm tra" },
+  },
+  {
+    path: "/examinate/:quizAssignmentId",
+    component: Exam,
+    meta: { title: "Kiểm tra" },
   },
   { path: "/register", component: RegisterView },
   { path: "/login", component: LoginView },

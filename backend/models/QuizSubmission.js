@@ -17,9 +17,13 @@ const quizSubmissionSchema = new mongoose.Schema({
       selectedOption: String, // "A", "B", "C", "D"
     },
   ],
+  submitted: {
+    type: Boolean,
+    default: false,
+  },
   score: Number,
   attempt: { type: Number, default: 1 },
   startedAt: { type: Date, default: Date.now },
-  submittedAt: { type: Date, default: Date.now },
+  submittedAt: { type: Date },
 });
 module.exports = mongoose.model("QuizSubmission", quizSubmissionSchema);

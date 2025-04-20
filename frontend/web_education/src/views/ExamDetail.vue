@@ -4,6 +4,10 @@
     <main class="main-content">
       <Topbar />
       <section class="content">
+        <div class="nav-links" v-if="isTeacher">
+            <router-link :to="`/examination/${route.params.quizAssignmentId}`" active-class="active">Tổng quan</router-link>
+            <router-link :to="`/examination/${route.params.quizAssignmentId}/detail`" active-class="active">Chi tiết</router-link>
+          </div>
         <div class="result-page" v-if="quiz">
             <div class="quiz-info card">
                 <h2 class="title">{{ quiz.title }}</h2>
@@ -358,7 +362,36 @@ watch(scoreDistribution, async (distribution) => {
   max-width: 90%;
   padding: 20px;
 }
+/* Link điều hướng */
+.nav-links {
+  display: flex;
+  left: 0;
+  gap: 30px;
+}
 
+.nav-links a {
+  text-decoration: none;
+  color: black;
+  font-size: 16px;
+  padding-bottom: 5px;
+  position: relative;
+}
+
+.nav-links a.active {
+  color: blue;
+  font-weight: bold;
+}
+
+.nav-links a.active::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 3px;
+  background: blue;
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+}
 .tooltip-wrapper {
   position: relative;
   display: inline-block;

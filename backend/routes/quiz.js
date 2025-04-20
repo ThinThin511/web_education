@@ -343,4 +343,65 @@ router.patch("/:id/answer", async (req, res) => {
     res.status(500).json({ message: "Lỗi khi lưu đáp án." });
   }
 });
+router.get("/result/:quizAssignmentId", async (req, res) => {
+  const { quizAssignmentId } = req.params;
+  const { studentId } = req.query;
+
+  if (!studentId) {
+    return res.status(400).json({ message: "Thiếu studentId" });
+  }
+
+  try {
+    // Lấy assignment và quiz liên quan
+    const assignment = await QuizAssignment.findById(quizAssignmentId);
+    if (!assignment) {
+      return res.status(404).json({ message: "Không tìm thấy bài kiểm tra" });
+    }
+
+    const quiz = await Quiz.findById(assignment.quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: "Không tìm thấy đề bài" });
+    }
+
+    // Lấy các bài nộp của học sinh này
+    const submissions = await QuizSubmission.find({
+      quizAssignmentId,
+      studentId,
+    }).sort({ attempt: 1 });
+
+    // Trả về
+    res.json({
+      quiz: {
+        title: quiz.title,
+        description: quiz.description,
+        duration: quiz.duration,
+        questions: quiz.questions,
+      },
+      submissions: submissions.map((s) => ({
+        _id: s._id,
+        attempt: s.attempt,
+        submittedAt: s.submittedAt,
+        score: s.score,
+        answers: s.answers,
+      })),
+    });
+  } catch (err) {
+    console.error("Lỗi khi lấy kết quả:", err);
+    res.status(500).json({ message: "Lỗi máy chủ" });
+  }
+});
+router.get("/submissions/:quizAssignmentId", async (req, res) => {
+  try {
+    const submissions = await QuizSubmission.find({
+      quizAssignmentId: req.params.quizAssignmentId,
+    })
+      .populate("studentId", "fullname _id") // lấy tên học sinh
+      .sort({ submittedAt: -1 });
+
+    res.json(submissions);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Lỗi server" });
+  }
+});
 module.exports = router;

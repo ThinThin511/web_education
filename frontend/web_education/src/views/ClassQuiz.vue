@@ -55,6 +55,9 @@
                 <button @click="goToDoQuiz(quiz._id)" class="do-quiz-btn" v-if="!isTeacher">
                   🚀 Làm bài
                 </button>
+                <button @click="viewToDoQuiz(quiz._id)" class="view-quiz-btn" >
+                  Xem kết quả
+                </button>
               </div>
             </div>
             <div v-else>
@@ -105,6 +108,9 @@
                 <p>📅 Kết thúc: {{ formatDate(quiz.endTime) }}</p>
                 <p>❓ Số câu hỏi: {{ quiz.quizId.questions?.length || 0 }}</p>
                 <p>🕒 Thời gian làm bài: {{ quiz.quizId.duration }} phút</p>
+                <button @click="viewToDoQuiz(quiz._id)" class="view-quiz-btn" >
+                  Xem kết quả
+                </button>
                 </div>
             </div>
             <div v-else>
@@ -237,6 +243,14 @@ const goToDoQuiz = (assignmentId) => {
     return;
   }
   router.push(`/examinate/${assignmentId}`);
+};
+const viewToDoQuiz = (assignmentId) => {
+  console.log(assignmentId)
+  if (!assignmentId) {
+    console.error('quizAssignmentId bị undefined!');
+    return;
+  }
+  router.push(`/examination/${assignmentId}`);
 };
 const currentUser = ref(authStore.user); // Lưu thông tin người dùng hiện tại
 
@@ -638,7 +652,21 @@ const fetchClassPeople = async () => {
   text-align: center;
   
 }
-
+.view-quiz-btn {
+  display: block;
+  margin: 16px auto 0;
+  background-color: #ff0000;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+  
+}
 .do-quiz-btn:hover {
   background-color: #059669;
 }

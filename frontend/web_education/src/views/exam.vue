@@ -103,7 +103,7 @@ const submitQuiz = async () => {
   try {
     await axios.post(`http://localhost:5000/api/quizzes/${submission.value._id}/submit`);
     toast.success("Đã nộp bài!");
-    router.push("/"); // trang kết quả
+    router.push(`/examination/${route.params.quizAssignmentId}`); // trang kết quả
   } catch (err) {
     toast.error("Lỗi khi nộp bài.");
   }

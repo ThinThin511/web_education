@@ -9,6 +9,7 @@
           <h2>{{ quiz.title }}</h2>
           <p><strong>Thời gian nộp:</strong> {{ formatDate(submission?.submittedAt) }}</p>
           <p><strong>Điểm:</strong> {{ submission?.score }}/10</p>
+          <p><strong>Tên:</strong> {{ submission?.studentId?.fullname }}</p>
         </div>
 
         

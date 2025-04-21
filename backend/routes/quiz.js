@@ -406,7 +406,7 @@ router.get("/result/:quizAssignmentId", async (req, res) => {
     if (!quiz) {
       return res.status(404).json({ message: "Không tìm thấy đề bài" });
     }
-
+    const author = await User.findById(studentId);
     // Lấy các bài nộp của học sinh này
     const submissions = await QuizSubmission.find({
       quizAssignmentId,
@@ -427,6 +427,7 @@ router.get("/result/:quizAssignmentId", async (req, res) => {
         submittedAt: s.submittedAt,
         score: s.score,
         answers: s.answers,
+        fullname: author.fullname,
       })),
     });
   } catch (err) {

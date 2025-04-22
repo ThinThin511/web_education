@@ -124,11 +124,11 @@ onMounted(() => {
   fetchSubmission();
 
   // Chống chuyển tab
-//   document.addEventListener("visibilitychange", () => {
-//     if (document.hidden) {
-//       toast.warning("Không được chuyển tab khi đang làm bài!");
-//     }
-//   });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      toast.warning("Không được chuyển tab khi đang làm bài!");
+    }
+  });
 });
 
 onUnmounted(() => {

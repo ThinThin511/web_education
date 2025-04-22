@@ -412,7 +412,7 @@ router.get("/result/:quizAssignmentId", async (req, res) => {
       quizAssignmentId,
       studentId,
     }).sort({ attempt: 1 });
-
+    console.log(author.fullname);
     // Trả về
     res.json({
       quiz: {

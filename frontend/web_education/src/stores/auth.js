@@ -55,16 +55,23 @@ export const useAuthStore = defineStore("auth", {
     },
     async fetchUser() {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Không có token");
+
         const response = await axios.get(
           "http://localhost:5000/api/auth/user",
           {
             headers: {
-              Authorization: localStorage.getItem("token"),
+              Authorization: token,
             },
           }
         );
-        this.user = response.data;
-        localStorage.setItem("user", JSON.stringify(this.user));
+
+        // Thêm id từ _id để tiện sử dụng
+        const userWithId = { ...response.data, id: response.data._id };
+
+        this.user = userWithId;
+        localStorage.setItem("user", JSON.stringify(userWithId));
       } catch (error) {
         console.error("Lỗi lấy thông tin người dùng:", error);
       }

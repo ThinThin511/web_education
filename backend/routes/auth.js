@@ -74,17 +74,21 @@ router.put("/update", async (req, res) => {
 
     if (!id) return res.status(400).json({ message: "Thiếu ID người dùng" });
 
-    const user = await User.findById(id);
-    if (!user)
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      {
+        ...(fullname && { fullname }),
+        ...(phone && { phone }),
+        ...(birthday && { birthday }),
+        ...(avatar && { avatar }),
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser)
       return res.status(404).json({ message: "Người dùng không tồn tại" });
 
-    user.fullname = fullname || user.fullname;
-    user.phone = phone || user.phone;
-    user.birthday = birthday || user.birthday;
-    user.avatar = avatar || user.avatar;
-
-    await user.save();
-    res.json({ message: "Cập nhật thành công", user });
+    res.json({ message: "Cập nhật thành công", user: updatedUser });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi server khi cập nhật" });

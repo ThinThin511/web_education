@@ -99,7 +99,7 @@ const saveChanges = async () => {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: userId,  // Thêm ID người dùng
+        id: userId,
         fullname: fullname.value,
         phone: phone.value,
         birthday: birthday.value,
@@ -107,14 +107,18 @@ const saveChanges = async () => {
       }),
     });
 
+    const data = await response.json(); // 🔥 Lấy dữ liệu trả về từ server
+    console.log("Phản hồi từ server:", data);
+
     if (response.ok) {
-      await authStore.fetchUser();
+      await authStore.fetchUser(); // Cập nhật lại user từ backend
       alert("Cập nhật thành công!");
     } else {
-      alert("Cập nhật thất bại!");
+      alert(data.message || "Cập nhật thất bại!"); // Hiển thị thông báo lỗi cụ thể hơn
     }
   } catch (error) {
     console.error("Lỗi cập nhật thông tin:", error);
+    alert("Có lỗi xảy ra khi gửi yêu cầu!");
   }
 };
 </script>

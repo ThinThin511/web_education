@@ -88,7 +88,20 @@ const handleClassJoined = () => {
   fetchUserClasses(); // Load lại danh sách lớp
 };
 </script>
+<style>
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-left: 250px;
 
+}
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0; /* Sidebar sẽ ẩn nên không cần đẩy content */
+  }
+}
+</style>
 <style scoped>
 .layout {
   display: flex;
@@ -99,6 +112,7 @@ const handleClassJoined = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  margin-left: 250px;
 }
 
 .content {

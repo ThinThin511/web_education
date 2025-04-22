@@ -71,7 +71,7 @@
                   <div class="comment-actions" v-if="user === comment.userId._id || isTeacher">
                   
                     <button v-if="user === comment.userId._id" @click="editComment(comment)">Chỉnh sửa</button>
-                    <button @click="deleteComment(comment._id)">Xóa {{ currentUser._id }}</button>
+                    <button @click="deleteComment(comment._id)">Xóa </button>
                   </div>
                 </div>
                 <div v-if="editingCommentId === comment._id" class="edit-section">
@@ -340,7 +340,7 @@ onMounted(()=>{
   display: flex;
   flex-direction: column; /* Xếp nội dung theo chiều dọc */
   align-items: center; /* Căn giữa nội dung */
-  background-color: #e0e0e0;
+  background-color: #f9fbfd; 
   padding: 20px;
 }
 

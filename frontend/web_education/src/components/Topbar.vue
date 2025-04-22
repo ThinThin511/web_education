@@ -47,8 +47,26 @@ watch(() => route.params.id, fetchClassName, { immediate: true });
 .topbar {
   display: flex;
   justify-content: space-between;
-  padding: 15px;
-  background: rgb(183, 255, 249);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  align-items: center;
+  padding: 16px 24px;
+  background: #e0f7fa; /* Xanh nhạt, học tập */
+  border-bottom: 2px solid #00acc1; /* Tạo viền dưới rõ nét */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.left h2 {
+  font-size: 30px;
+  font-weight: 600;
+  color: #00796b; /* Xanh ngọc đậm */
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.right {
+  display: flex;
+  align-items: center;
 }
 </style>

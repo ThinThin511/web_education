@@ -448,7 +448,11 @@ const formatTimeAgo = (date) => {
   padding-bottom: 5px;
   position: relative;
 }
-
+.nav-links a:hover {
+  color: #007bff;
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
 .nav-links a.active {
   color: blue;
   font-weight: bold;

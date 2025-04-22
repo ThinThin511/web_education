@@ -33,7 +33,7 @@
 
         <div class="assignments-list">
           <h2>Bài tập đang diễn ra</h2>
-          <div v-if="upcomingAssignments.length === 0">Chưa có bài tập nào đang diễn ra.</div>
+          <div style="text-align: center;" v-if="upcomingAssignments.length === 0">Không có bài tập nào đang diễn ra.</div>
           <div v-else class="assignment-card upcoming-assignment" v-for="assignment in upcomingAssignments" :key="assignment._id">
             <!-- Hiển thị bài tập đang diễn ra -->
             <div class="assignment-header">
@@ -63,7 +63,7 @@
           </div>
 
           <h2>Bài tập đã hết hạn</h2>
-          <div v-if="pastAssignments.length === 0">Chưa có bài tập nào đã hết hạn.</div>
+          <div style="text-align: center;" v-if="pastAssignments.length === 0">Không có bài tập nào đã hết hạn.</div>
           <div v-else class="assignment-card past-assignment" v-for="assignment in pastAssignments" :key="assignment._id">
             <!-- Hiển thị bài tập đã hết hạn -->
             <div class="assignment-header">

@@ -3,7 +3,7 @@
     <div class="sticky-header">
       <div class="top-bar">
         <span class="timer">⏳ Còn lại: {{ formattedTime }}</span>
-        <button @click="submitQuiz" class="submit-btn">Nộp bài</button>
+        <button @click="showSubmitConfirm = true" class="submit-btn">Nộp bài</button>
       </div>
       
     </div>
@@ -31,6 +31,27 @@
       </div>
     </div>
   </div>
+  
+  <div v-if="showSubmitConfirm" class="modal-overlay">
+  <div class="modal">
+    <h3 style="text-align: center;">Xác nhận nộp bài</h3>
+    <p>Xem lại bài làm:</p>
+    <div class="question-grid">
+      <div
+        v-for="(a, i) in answers"
+        :key="i"
+        class="qbox"
+        :class="{ answered: a !== '', unanswered: a === '' }"
+      >
+        {{ i + 1 }}
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button @click="handleFinalSubmit" class="submit-btn">Xác nhận nộp</button>
+      <button @click="showSubmitConfirm = false" class="cancel-btn">Huỷ</button>
+    </div>
+  </div>
+</div>
 </template>
 
 <script setup>
@@ -48,6 +69,9 @@ const quiz = ref(null);
 const submission = ref(null);
 const answers = ref([]);
 const remainingTime = ref(0);
+const isSubmitted = ref(false);
+const warningCount = ref(0);
+const maxWarnings = 3;
 let timer = null;
 const classId = ref(localStorage.getItem("classId") || route.params.id);
 const formattedTime = computed(() => {
@@ -55,7 +79,16 @@ const formattedTime = computed(() => {
   const sec = remainingTime.value % 60;
   return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
 });
-
+const showSubmitConfirm = ref(false);
+const unansweredQuestions = computed(() =>
+  answers.value
+    .map((a, i) => (a === "" ? i + 1 : null))
+    .filter((v) => v !== null)
+);
+const handleFinalSubmit = () => {
+  showSubmitConfirm.value = false;
+  submitQuiz(); // gọi hàm nộp thật
+};
 const fetchSubmission = async () => {
   try {
     const quizAssignmentId = route.params.quizAssignmentId;
@@ -100,8 +133,11 @@ const saveAnswer = async (index, option) => {
 };
 
 const submitQuiz = async () => {
+  if (isSubmitted.value) return;
   try {
     await axios.post(`http://localhost:5000/api/quizzes/${submission.value._id}/submit`);
+    isSubmitted.value = true; // <-- Cập nhật flag
+    document.removeEventListener("visibilitychange", visibilityHandler);
     toast.success("Đã nộp bài!");
     router.push(`/examination/${route.params.quizAssignmentId}`); // trang kết quả
   } catch (err) {
@@ -119,20 +155,30 @@ const startCountdown = () => {
     }
   }, 1000);
 };
-
+let visibilityHandler = null;
 onMounted(() => {
   fetchSubmission();
-
+  warningCount.value = parseInt(localStorage.getItem("warningCount") || "0");
   // Chống chuyển tab
-  document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
-      toast.warning("Không được chuyển tab khi đang làm bài!");
+  visibilityHandler = () => {
+  if (!isSubmitted.value && document.hidden) {
+    warningCount.value++;
+
+    if (warningCount.value >= maxWarnings) {
+      toast.error("Bạn đã chuyển tab quá nhiều lần. Bài làm sẽ bị nộp.");
+      submitQuiz();
+    } else {
+      toast.warning(`Không được chuyển tab! Bạn còn ${maxWarnings - warningCount.value} lần.`);
     }
-  });
+  }
+};
+
+  document.addEventListener("visibilitychange", visibilityHandler);
 });
 
 onUnmounted(() => {
   clearInterval(timer);
+  document.removeEventListener("visibilitychange", visibilityHandler);
 });
 </script>
 
@@ -260,6 +306,86 @@ onUnmounted(() => {
 .options input[type="radio"] {
   accent-color: #3b82f6;
   transform: scale(1.2);
+}
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+    display: block !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
+  background: white;
+  padding: 24px;
+  width: 90%;
+  max-width: 700px;
+  border-radius: 12px;
+  position: relative;
+  max-height: 80vh;
+  height: fit-content;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+
+.modal h3 {
+  margin-bottom: 12px;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.question-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.qbox {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.answered {
+  background: #4ade80;
+  color: white;
+}
+
+.unanswered {
+  background: #f87171;
+  color: white;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.cancel-btn {
+  background: #e2e8f0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.cancel-btn:hover {
+  background: #cbd5e1;
 }
 
 </style>

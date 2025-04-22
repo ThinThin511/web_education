@@ -130,6 +130,18 @@
       </section>
     </main>
   </div>
+  <div v-if="showWarning" class="popup-overlay">
+  <div class="popup-content">
+    <h3>📢 Lưu ý trước khi làm bài</h3>
+    <p>🔒 Trong quá trình làm bài, bạn <strong>không được chuyển tab</strong>.</p>
+    <p>⛔ Nếu vi phạm quá <strong>3 lần</strong>, hệ thống sẽ tự động <strong>nộp bài</strong>.</p>
+    <p>⏱️ Thời gian làm bài sẽ được <strong>tính từ lúc bạn bấm bắt đầu</strong>.</p>
+    <div style="margin-top: 20px;">
+      <button @click="confirmStartQuiz" class="do-quiz-btn">✅ Tôi đã hiểu, bắt đầu</button>
+      <button @click="cancelStartQuiz" class="view-quiz-btn" ><i class="fa-solid fa-x"></i> Huỷ</button>
+    </div>
+  </div>
+</div>
 </template>
 <script setup>
 import { ref, watch, onMounted,computed } from "vue";
@@ -147,6 +159,8 @@ const isPopupOpen = ref(false);
 const selectedClass = ref(null);
 const authStore = useAuthStore();
 const userId = authStore.user?.id;
+const showWarning = ref(false);
+const pendingQuizId = ref(null);
 const openSettings = () => {
   if (classroom.value) {
     selectedClass.value = {
@@ -237,12 +251,23 @@ const deleteQuiz = async (assignmentId) => {
 };
 
 const goToDoQuiz = (assignmentId) => {
-  console.log(assignmentId)
   if (!assignmentId) {
     console.error('quizAssignmentId bị undefined!');
     return;
   }
-  router.push(`/examinate/${assignmentId}`);
+  pendingQuizId.value = assignmentId;
+  showWarning.value = true;
+};
+const confirmStartQuiz = () => {
+  if (pendingQuizId.value) {
+    router.push(`/examinate/${pendingQuizId.value}`);
+    showWarning.value = false;
+    pendingQuizId.value = null;
+  }
+};
+const cancelStartQuiz = () => {
+  showWarning.value = false;
+  pendingQuizId.value = null;
 };
 const viewToDoQuiz = (assignmentId) => {
   console.log(assignmentId)

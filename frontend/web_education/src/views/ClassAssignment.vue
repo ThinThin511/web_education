@@ -108,7 +108,12 @@
       <textarea v-model="newAssignment.content" placeholder="Nhập nội dung bài tập" rows="2"></textarea>
 
       <label>Hạn nộp</label>
-      <input type="datetime-local" v-model="newAssignment.dueDate" required />
+      <input
+        type="datetime-local"
+        v-model="newAssignment.dueDate"
+        :min="minDueDate"
+        required
+      />
 
       <label>Điểm tối đa</label>
       <input type="number" v-model="newAssignment.maxScore" placeholder="VD: 10" required />
@@ -199,6 +204,12 @@ const getFileName = (file) => {
 const getFileURL = (file) => {
   return typeof file === "string" ? file : URL.createObjectURL(file);
 };
+
+const minDueDate = computed(() => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // xử lý timezone cho đúng định dạng
+  return now.toISOString().slice(0, 16); // format YYYY-MM-DDTHH:mm
+});
 const openSettings = () => {
   if (classroom.value) {
     selectedClass.value = {

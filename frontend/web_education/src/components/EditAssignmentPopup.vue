@@ -11,7 +11,12 @@
           <textarea v-model="editedContent" placeholder="Nhập mô tả bài tập" rows="2"></textarea>
 
           <label>Hạn nộp</label>
-          <input type="datetime-local" v-model="editedDueDate" required />
+          <input
+            type="datetime-local"
+            v-model="editedDueDate"
+            :min="minDueDate"
+            required
+          />
 
           <label>Điểm tối đa</label>
           <input type="number" v-model="editedMaxScore" placeholder="VD: 10" required />
@@ -43,7 +48,7 @@
 
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch,computed } from "vue";
 import { useToast } from "vue-toastification";
 import axios from "axios";
 import defaulticon from "@/assets/default-icon.png";
@@ -94,7 +99,11 @@ const handleFileUpload = (event) => {
   const newFiles = Array.from(event.target.files);
   editedAttachments.value.push(...newFiles);
 };
-
+const minDueDate = computed(() => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // xử lý timezone cho đúng định dạng
+  return now.toISOString().slice(0, 16); // format YYYY-MM-DDTHH:mm
+});
 const triggerFileInput = () => fileInput.value.click();
 
 const removeFile = (index) => editedAttachments.value.splice(index, 1);

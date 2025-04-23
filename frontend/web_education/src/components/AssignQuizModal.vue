@@ -11,10 +11,10 @@
         </select>
 
         <label>Thời gian bắt đầu:</label>
-        <input type="datetime-local" v-model="form.startTime" required />
+        <input type="datetime-local" v-model="form.startTime" :min="minDueDate" required />
 
         <label>Thời gian kết thúc:</label>
-        <input type="datetime-local" v-model="form.endTime" required />
+        <input type="datetime-local" v-model="form.endTime" :min="minDueDate" required />
 
         <label>Số lần làm tối đa:</label>
         <input type="number" v-model="form.maxAttempts" min="1" required />
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref,onMounted } from "vue";
+import { ref,onMounted, computed } from "vue";
 import axios from "axios";
 import { useToast } from "vue-toastification";
 
@@ -40,7 +40,11 @@ const props = defineProps({
 const emit = defineEmits(["close", "assigned"]);
 
 const toast = useToast();
-
+const minDueDate = computed(() => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // xử lý timezone cho đúng định dạng
+  return now.toISOString().slice(0, 16); // format YYYY-MM-DDTHH:mm
+});
 const form = ref({
   quizId: "",
   startTime: "",

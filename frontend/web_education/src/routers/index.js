@@ -19,6 +19,8 @@ import ClassQuiz from "@/views/ClassQuiz.vue";
 import Exam from "@/views/exam.vue";
 import ExamDetail from "@/views/ExamDetail.vue";
 import ExamDetailTest from "@/views/ExamDetailTest.vue";
+import Chat from "@/views/Chat.vue";
+import Conversation from "@/views/Conversation.vue";
 
 const toast = useToast();
 
@@ -109,6 +111,16 @@ const routes = [
     path: "/join-teacher/:inviteCode",
     component: JoinTeacher,
     meta: { title: "" },
+  },
+  {
+    path: "/messages/:receiverId",
+    component: Chat,
+    meta: { title: "Tin nhắn" },
+  },
+  {
+    path: "/conversations",
+    component: Conversation,
+    meta: { title: "Tin nhắn" },
   },
 ];
 

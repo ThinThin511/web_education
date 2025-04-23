@@ -51,7 +51,12 @@
           </div>
           <div v-for="teacher in teachers" :key="teacher.id" class="person">
             <div class="person-left">
-              <img :src="teacher.avatar || defaultAvatar" alt="Avatar" class="avatar" />
+              <div class="avatar-dropdown" @click.stop="toggleDropdown(teacher._id)">
+                <img :src="teacher.avatar || defaultAvatar" alt="Avatar" class="avatar" />
+                <div class="dropdown-menu" v-if="dropdownOpen === teacher._id" @click.stop>
+                  <button @click.stop="goToChat(teacher)">Nhắn tin riêng</button>
+                </div>
+              </div>
               <span><h5>{{ teacher.fullname }}</h5></span>
             </div>
             
@@ -96,7 +101,12 @@
           
           <div v-for="student in students" :key="student.id" class="person">
             <div class="person-left">
-              <img :src="student.avatar || defaultAvatar" alt="Avatar" class="avatar" />
+              <div class="avatar-dropdown" @click.stop="toggleDropdown(student._id)">
+                <img :src="student.avatar || defaultAvatar" alt="Avatar" class="avatar" />
+                <div class="dropdown-menu" v-if="dropdownOpen === student._id" @click.stop>
+                  <button @click.stop="goToChat(student)">Nhắn tin riêng</button>
+                </div>
+              </div>
               <span><h5>{{ student.fullname }}</h5></span>
             </div>
             <button v-if="isTeacher" @click="removeStudent(student._id)" class="icon-btn-delete">
@@ -171,7 +181,24 @@ watch(() => route.params.id, (newId) => {
 onMounted(() => {
   localStorage.setItem("classId", classId.value);
   fetchClassPeople();
+  document.addEventListener('click', () => {
+    dropdownOpen.value = null;
+  });
 });
+const dropdownOpen = ref(null);
+
+const toggleDropdown = (userId) => {
+  dropdownOpen.value = dropdownOpen.value === userId ? null : userId;
+};
+
+const goToChat = (user) => {
+  dropdownOpen.value = null;
+  // Chuyển trang nhắn tin, ví dụ:
+  // `/messages/:userId`
+  window.location.href = `/messages/${user._id}`;
+};
+
+// Tắt dropdown nếu click bên ngoài
 
 const fetchClassPeople = async () => {
   try {
@@ -453,6 +480,37 @@ const copyToClipboard = (text) => {
 
 .close-btn:hover {
   background: darkred;
+}
+.avatar-dropdown {
+  position: relative;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  display: block !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
+}
+
+.dropdown-menu button {
+  background: none;
+  border: none;
+  padding: 10px 20px;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dropdown-menu button:hover {
+  background: #f0f0f0;
 }
 
 </style>

@@ -67,6 +67,10 @@ onMounted(async () => {
   scrollToBottom();
   socket.connect();
   socket.emit("join", currentUserId);
+  socket.emit("mark_as_read", {
+  userId: currentUserId,
+  partnerId: receiverId,
+});
   const firstMessage = messages.value[0];
   if (firstMessage) {
     receiverInfo.value =
@@ -76,6 +80,10 @@ onMounted(async () => {
     if (msg.sender._id === receiverId || msg.receiver === receiverId) {
       messages.value.push(msg);
       scrollToBottom();
+      socket.emit("mark_as_read", {
+        userId: currentUserId,
+        partnerId: receiverId,
+    });
     }
   });
 });

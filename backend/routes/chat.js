@@ -27,33 +27,38 @@ router.get("/conversations", async (req, res) => {
   const currentUserId = req.userId || req.headers["x-user-id"];
 
   try {
-    // Tìm tất cả tin nhắn liên quan đến user
     const allMessages = await Message.find({
       $or: [{ sender: currentUserId }, { receiver: currentUserId }],
     })
-      .sort({ createdAt: -1 }) // sắp xếp để lấy được tin mới nhất mỗi cặp
+      .sort({ createdAt: -1 })
       .populate("sender", "fullname avatar")
       .populate("receiver", "fullname avatar");
 
-    // Tạo map để lưu unique cặp người dùng với tin nhắn mới nhất
     const conversationMap = new Map();
+    const unreadCountMap = new Map();
 
     for (const msg of allMessages) {
-      const otherUser =
-        msg.sender._id.toString() === currentUserId ? msg.receiver : msg.sender;
+      const isSender = msg.sender._id.toString() === currentUserId;
+      const otherUser = isSender ? msg.receiver : msg.sender;
+      const otherUserId = otherUser._id.toString();
 
-      const key = otherUser._id.toString();
-
-      if (!conversationMap.has(key)) {
-        conversationMap.set(key, {
+      if (!conversationMap.has(otherUserId)) {
+        conversationMap.set(otherUserId, {
           user: otherUser,
           lastMessage: msg.text,
           lastMessageAt: msg.createdAt,
         });
       }
+
+      // Nếu là tin nhắn gửi đến mình và chưa đọc
+      if (!isSender && msg.read === false) {
+        unreadCountMap.set(
+          otherUserId,
+          (unreadCountMap.get(otherUserId) || 0) + 1
+        );
+      }
     }
 
-    // Convert map thành mảng để trả về
     const conversations = Array.from(conversationMap.entries()).map(
       ([userId, data]) => ({
         userId,
@@ -61,6 +66,7 @@ router.get("/conversations", async (req, res) => {
         avatar: data.user.avatar,
         lastMessage: data.lastMessage,
         lastMessageAt: data.lastMessageAt,
+        unreadCount: unreadCountMap.get(userId) || 0, // 👈 gán số tin chưa đọc
       })
     );
 
@@ -69,5 +75,10 @@ router.get("/conversations", async (req, res) => {
     console.error("Error fetching conversations:", err);
     res.status(500).json({ error: "Lỗi khi lấy danh sách hội thoại" });
   }
+});
+router.get("/unread-count", async (req, res) => {
+  const userId = req.query.userId;
+  const count = await Message.countDocuments({ receiver: userId, read: false });
+  res.json({ count });
 });
 module.exports = router;

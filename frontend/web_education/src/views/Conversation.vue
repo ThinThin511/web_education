@@ -20,23 +20,32 @@
                 </div>
                 
 
-                <div
-                    class="conversation-item"
-                    v-for="conv in filteredConversations"
-                    :key="conv.userId"
-                    @click="goToChat(conv.userId)"
+               <div
+                  class="conversation-item"
+                  v-for="conv in filteredConversations"
+                  :key="conv.userId"
+                  @click="goToChat(conv.userId)"
                 >
-                    <img :src="conv.avatar || defaultAvatar" class="avatar" />
-                    <div class="conversation-info">
+                  <img :src="conv.avatar || defaultAvatar" class="avatar" />
+                  <div class="conversation-info">
                     <div class="name-and-time">
-                        <span class="name">{{ conv.name }}</span>
-                        <span class="time">{{ formatTime(conv.lastMessageAt) }}</span>
+                      <span class="name">{{ conv.name }}</span>
+                      <span class="time">{{ formatTime(conv.lastMessageAt) }}</span>
                     </div>
                     <div class="last-message">
-                        {{ conv.lastMessage }}
+                      {{ conv.lastMessage }}
                     </div>
-                    </div>
+                  </div>
+
+                  <!-- 🟢 Badge tin chưa đọc -->
+                  <div
+                    v-if="conv.unreadCount > 0"
+                    class="unread-badge"
+                  >
+                    {{ conv.unreadCount }}
+                  </div>
                 </div>
+
             </div>
         
       </section>
@@ -69,6 +78,16 @@ const search = ref('');
 const currentUserId = JSON.parse(localStorage.getItem("user"))?.id;
 
 const goToChat = (id) => {
+   socket.emit("mark_as_read", {
+    userId: currentUserId,
+    partnerId: id,
+  });
+
+  // Reset local state (hiển thị thôi)
+  const index = conversations.value.findIndex(c => c.userId === id);
+  if (index !== -1) {
+    conversations.value[index].unreadCount = 0;
+  }
   router.push(`/messages/${id}`);
 };
 
@@ -105,15 +124,19 @@ onMounted(async () => {
   const senderId = message.sender._id;
   const receiverId = message.receiver;
 
-  const otherUserId = senderId === currentUserId ? receiverId : senderId;
+  const isIncoming = receiverId === currentUserId; // 🟢 Tin đến từ người khác
+  const otherUserId = isIncoming ? senderId : receiverId;
 
   const convIndex = conversations.value.findIndex(c => c.userId === otherUserId);
 
   if (convIndex !== -1) {
+    const existing = conversations.value[convIndex];
+
     const updated = {
-      ...conversations.value[convIndex],
+      ...existing,
       lastMessage: message.text,
       lastMessageAt: message.createdAt,
+      unreadCount: isIncoming ? (existing.unreadCount || 0) + 1 : existing.unreadCount,
     };
 
     conversations.value.splice(convIndex, 1);
@@ -125,6 +148,7 @@ onMounted(async () => {
       avatar: message.sender.avatar || defaultAvatar,
       lastMessage: message.text,
       lastMessageAt: message.createdAt,
+      unreadCount: isIncoming ? 1 : 0, // 🟢 Nếu là tin đến, đếm là 1
     });
   }
 });
@@ -229,5 +253,19 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.unread-badge {
+  background-color: #ff4d4f;
+  color: white;
+  font-size: 12px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-left: 8px;
 }
 </style>

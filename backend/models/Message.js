@@ -13,6 +13,7 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
     text: { type: String, required: true },
+    read: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

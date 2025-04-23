@@ -13,6 +13,7 @@ module.exports = function (io) {
         text,
         sender: senderId,
         receiver: receiverId,
+        read: false,
       });
 
       await message.save();
@@ -24,6 +25,13 @@ module.exports = function (io) {
         receiver: receiverId,
         createdAt: message.createdAt,
       });
+    });
+    socket.on("mark_as_read", async ({ userId, partnerId }) => {
+      console.log("Đánh dấu đã đọc:", { userId, partnerId });
+      await Message.updateMany(
+        { sender: partnerId, receiver: userId, read: false },
+        { $set: { read: true } }
+      );
     });
   });
 };

@@ -1,22 +1,47 @@
 <script setup>
+import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
+import socket from '@/socket';
+
+const unreadCount = ref(0);
+const currentUserId = JSON.parse(localStorage.getItem("user"))?.id;
+
+// Lấy số tin chưa đọc ban đầu
+async function fetchUnreadCount() {
+  const res = await axios.get(`http://localhost:5000/api/chat/unread-count`, {
+    params: { userId: currentUserId }
+  });
+  unreadCount.value = res.data.count;
+}
+
+// Khi có tin nhắn mới đến -> tăng nếu là người khác gửi
+socket.on("new_message", (msg) => {
+  if (msg.receiver === currentUserId) {
+    unreadCount.value++;
+  }
+});
+
+// Khi có tin nhắn được đánh dấu là đã đọc → giảm (tùy logic bạn, hoặc làm lại full)
+socket.on("marked_as_read", ({ userId }) => {
+  if (userId === currentUserId) fetchUnreadCount(); // hoặc trừ thủ công nếu bạn muốn
+});
+
+onMounted(() => {
+  socket.connect();
+  socket.emit("join", currentUserId);
+  fetchUnreadCount();
+});
+
 const route = useRoute();
-
-// Danh sách các path cần ẩn icon chat
-const hiddenPaths = ['/login', '/register'];
-
-// Hàm kiểm tra nếu path hiện tại là `/examinate/:quizAssignmentId`
-const isExaminatePath = () => {
-  return /^\/examinate\/[^/]+$/.test(route.path);
-};
-
-// Tổng hợp điều kiện để ẩn
+const hiddenPaths = ['/login', '/register','/conversations'];
+const isExaminatePath = () => /^\/examinate\/[^/]+$/.test(route.path);
 const shouldShowChat = computed(() => {
   return !hiddenPaths.includes(route.path) && !isExaminatePath();
 });
 
 function goToChat() {
+  unreadCount.value = 0;
   window.location.href = "/conversations";
 }
 </script>
@@ -25,6 +50,7 @@ function goToChat() {
   <router-view />
   <div class="chat-floating" v-if="shouldShowChat" @click="goToChat">
     <i class="fas fa-comment-dots"></i>
+    <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
   </div>
 </template>
 
@@ -48,5 +74,17 @@ function goToChat() {
 }
 .chat-floating:hover {
   background-color: #006fd3;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: red;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: bold;
 }
 </style>

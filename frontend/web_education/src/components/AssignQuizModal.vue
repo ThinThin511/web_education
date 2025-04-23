@@ -11,14 +11,17 @@
         </select>
 
         <label>Thời gian bắt đầu:</label>
-        <input type="datetime-local" v-model="form.startTime" :min="minDueDate" required />
+        <input type="datetime-local" v-model="form.startTime"  required />
 
         <label>Thời gian kết thúc:</label>
         <input type="datetime-local" v-model="form.endTime" :min="minDueDate" required />
 
         <label>Số lần làm tối đa:</label>
         <input type="number" v-model="form.maxAttempts" min="1" required />
-
+        <label>
+          <input type="checkbox" v-model="form.allowReview" />
+          Cho phép xem lại bài làm
+        </label>
         <button type="submit">Giao bài</button>
         <button @click.prevent="$emit('close')">Hủy</button>
       </form>
@@ -50,6 +53,7 @@ const form = ref({
   startTime: "",
   endTime: "",
   maxAttempts: 1,
+  allowReview: false,
 });
 
 const assignQuiz = async () => {
@@ -72,6 +76,7 @@ const assignQuiz = async () => {
       startTime: new Date(form.value.startTime),
       endTime: new Date(form.value.endTime),
       maxAttempts: form.value.maxAttempts,
+      allowReview: form.value.allowReview,
     };
 
     if (props.editingQuiz) {
@@ -105,6 +110,7 @@ onMounted(() => {
     form.value.startTime = formatDateForInput(props.editingQuiz.startTime);
     form.value.endTime = formatDateForInput(props.editingQuiz.endTime);
     form.value.maxAttempts = props.editingQuiz.maxAttempts;
+    form.value.allowReview = props.editingQuiz.allowReview ?? false;
   }
 });
 </script>

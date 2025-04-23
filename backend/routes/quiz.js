@@ -33,14 +33,22 @@ router.post("/create", async (req, res) => {
 // 2. Gán bài kiểm tra vào lớp học (tạo QuizAssignment)
 router.post("/assign", async (req, res) => {
   try {
-    const { quizId, classId, startTime, endTime, maxAttempts, userId } =
-      req.body;
+    const {
+      quizId,
+      classId,
+      startTime,
+      endTime,
+      maxAttempts,
+      userId,
+      allowReview,
+    } = req.body;
     const newAssignment = new QuizAssignment({
       quizId,
       classId,
       startTime,
       endTime,
       maxAttempts,
+      allowReview,
     });
     await newAssignment.save();
     const classroom = await Classroom.findById(classId).populate(
@@ -207,7 +215,8 @@ router.put("/:id", async (req, res) => {
 });
 router.put("/assign/:id", async (req, res) => {
   try {
-    const { quizId, classId, startTime, endTime, maxAttempts } = req.body;
+    const { quizId, classId, startTime, endTime, maxAttempts, allowReview } =
+      req.body;
 
     if (new Date(endTime) <= new Date(startTime)) {
       return res
@@ -217,7 +226,7 @@ router.put("/assign/:id", async (req, res) => {
 
     const updated = await QuizAssignment.findByIdAndUpdate(
       req.params.id,
-      { quizId, classId, startTime, endTime, maxAttempts },
+      { quizId, classId, startTime, endTime, maxAttempts, allowReview },
       { new: true }
     );
 
@@ -428,6 +437,7 @@ router.get("/result/:quizAssignmentId", async (req, res) => {
         score: s.score,
         answers: s.answers,
         fullname: author.fullname,
+        allowReview: assignment.allowReview,
       })),
     });
   } catch (err) {

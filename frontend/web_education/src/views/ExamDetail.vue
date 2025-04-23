@@ -33,7 +33,7 @@
                     <td>{{ formatDate(sub.submittedAt) }}</td>
                     <td>{{ sub.score }}/10</td>
                     <td>
-                        <button class="view-btn" @click="viewDetail(sub._id)">Xem chi tiết</button>
+                        <button v-if="sub.allowReview" class="view-btn" @click="viewDetail(sub._id)">Xem chi tiết</button>
                     </td>
                     </tr>
                 </tbody>

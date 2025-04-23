@@ -11,6 +11,7 @@ const quizAssignmentSchema = new mongoose.Schema({
     ref: "Class",
     required: true,
   },
+  allowReview: { type: Boolean },
   startTime: Date,
   endTime: Date,
   maxAttempts: { type: Number, default: 1 },

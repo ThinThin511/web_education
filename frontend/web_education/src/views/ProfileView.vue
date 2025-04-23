@@ -8,7 +8,7 @@
           <div class="profile-picture">
             <img :src="userAvatar " alt="Avatar" class="avatar" />
             <p>JPG hoặc PNG không lớn hơn 5MB</p>
-            <input class="form-control " type="file" @change="uploadAvatar" />
+            <input class="form-control " type="file" accept=".png,.jpg,.jpeg" @change="uploadAvatar" />
           </div>
 
           <div class="account-details">

@@ -139,7 +139,7 @@ const submitQuiz = async () => {
     isSubmitted.value = true; // <-- Cập nhật flag
     document.removeEventListener("visibilitychange", visibilityHandler);
     toast.success("Đã nộp bài!");
-    router.push(`/examination/${route.params.quizAssignmentId}`); // trang kết quả
+    router.replace(`/examination/${route.params.quizAssignmentId}`); // trang kết quả
   } catch (err) {
     toast.error("Lỗi khi nộp bài.");
   }

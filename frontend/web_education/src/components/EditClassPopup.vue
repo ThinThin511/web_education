@@ -22,7 +22,7 @@
 
           <div class="form-group">
             <label>Ảnh lớp học (Không bắt buộc)</label>
-            <input type="file" @change="uploadImage" class="form-control" />
+            <input type="file" @change="uploadImage" accept=".png,.jpg,.jpeg" class="form-control" />
             <!-- Hiển thị ảnh cũ nếu có -->
             <div v-if="previewImage || classImage" class="image-preview">
                 <img :src="previewImage || classImage" alt="Ảnh lớp học" class="preview" />

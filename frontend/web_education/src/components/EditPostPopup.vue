@@ -13,7 +13,7 @@
           
         />
         <div class="file-upload">
-          <input type="file" multiple @change="handleFileUpload" hidden ref="fileInput" />
+          <input type="file" multiple @change="handleFileUpload" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" ref="fileInput" />
           <button @click="triggerFileInput">Chọn tệp</button>
 
           <div v-if="editedFiles.length" class="file-list">
